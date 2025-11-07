@@ -42,6 +42,24 @@ tests = (
 
 )
 
+# FIX: move wait_for_string outside read_asynchronous!
+def wait_for_string(proc, string_to_find):
+    """Waits indefinitely until string is found in process. Must be run with timeout multiprocess.
+
+    Parameters:
+    proc (process): process in which we want to read
+    string_to_find (string): what we want to find in process
+
+    Returns:
+    None: Returns nothing if found, never ends if not found
+
+    """
+    while True:
+        # notice that all data are in stderr not in stdout, this is DobbyDaemon design
+        output = proc.stderr.readline()
+        if string_to_find in output:
+            test_utils.print_log("Found string \"%s\"" % string_to_find, test_utils.Severity.debug)
+            return
 
 def execute_test():
     if test_utils.selected_platform != test_utils.Platforms.vagrant_vm and test_utils.selected_platform != test_utils.Platforms.github_workflow_vm:
@@ -98,26 +116,6 @@ def read_asynchronous(proc, string_to_find, timeout):
     found (bool): True if found string_to_find inside proc.
 
     """
-
-    # as this function should not be used outside asynchronous read, it is moved inside it
-    def wait_for_string(proc, string_to_find):
-        """Waits indefinitely until string is found in process. Must be run with timeout multiprocess.
-
-        Parameters:
-        proc (process): process in which we want to read
-        string_to_find (string): what we want to find in process
-
-        Returns:
-        None: Returns nothing if found, never ends if not found
-
-        """
-
-        while True:
-            # notice that all data are in stderr not in stdout, this is DobbyDaemon design
-            output = proc.stderr.readline()
-            if string_to_find in output:
-                test_utils.print_log("Found string \"%s\"" % string_to_find, test_utils.Severity.debug)
-                return
 
     found = False
     reader = multiprocessing.Process(target=wait_for_string, args=(proc, string_to_find), kwargs={})
