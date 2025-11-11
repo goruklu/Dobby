@@ -19,7 +19,7 @@ import test_utils
 from subprocess import check_output
 import subprocess
 from time import sleep
-import multiprocessing
+import threading
 from os.path import basename
 
 tests = (
@@ -120,15 +120,14 @@ def read_asynchronous(proc, string_to_find, timeout):
                 return
 
     found = False
-    reader = multiprocessing.Process(target=wait_for_string, args=(proc, string_to_find), kwargs={})
-    test_utils.print_log("Starting multithread read", test_utils.Severity.debug)
+    reader = threading.Thread(target=wait_for_string, args=(proc, string_to_find))
+    test_utils.print_log("Starting threaded read", test_utils.Severity.debug)
     reader.start()
     reader.join(timeout)
-    # if thread still running
     if reader.is_alive():
         test_utils.print_log("Reader still exists, closing", test_utils.Severity.debug)
-        reader.terminate()
         test_utils.print_log("Not found string \"%s\"" % string_to_find, test_utils.Severity.error)
+        # Note: threads cannot be forcibly killed in Python; the function will return now.
     else:
         found = True
     return found
