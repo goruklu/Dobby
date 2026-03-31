@@ -80,7 +80,7 @@ var searchData=
   ['startruncmonitorthread_77',['startRuncMonitorThread',['../classDobbyManager.html#ae639a4fe073f7f781b7fcc73957646c6',1,'DobbyManager']]],
   ['starttimer_78',['startTimer',['../classIDobbyUtils__v1.html#a0d0a259821d7a4b6b3137fc78b5a5c5d',1,'IDobbyUtils_v1']]],
   ['starttimerimpl_79',['starttimerimpl',['../classIDobbyUtils__v1.html#aa5f6070c42f0d3e6c96bcac33b377665',1,'IDobbyUtils_v1::startTimerImpl()'],['../classDobbyUtils.html#a3902be9babf0947712ec8a597742bd6b',1,'DobbyUtils::startTimerImpl()']]],
-  ['state_80',['state',['../classServiceMonitor.html#a441295448b7ecce3d1c0a83e8e167eea',1,'ServiceMonitor::state()'],['../classDobbyRunC.html#a8e10ced10e2ddd397379a4a93468085d',1,'DobbyRunC::state()'],['../classServiceMonitor.html#a4c2cfd7a94f3a4f1e07441953f5f57da',1,'ServiceMonitor::State']]],
+  ['state_80',['state',['../classServiceMonitor.html#a4c2cfd7a94f3a4f1e07441953f5f57da',1,'ServiceMonitor::State'],['../classServiceMonitor.html#a441295448b7ecce3d1c0a83e8e167eea',1,'ServiceMonitor::state() const'],['../classDobbyRunC.html#a8e10ced10e2ddd397379a4a93468085d',1,'DobbyRunC::state()']]],
   ['statechangeevent_81',['StateChangeEvent',['../structDobbyProxy_1_1StateChangeEvent.html',1,'DobbyProxy']]],
   ['stateevents_82',['StateEvents',['../classStateEvents.html',1,'']]],
   ['stateofcontainer_83',['stateOfContainer',['../classDobbyManager.html#abceecde3a6a164e13f3799a5dd4a3636',1,'DobbyManager']]],
