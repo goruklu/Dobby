@@ -18,3 +18,6 @@
 add_subdirectory(DobbyUtilsTest)
 add_subdirectory(DobbyTest)
 add_subdirectory(DobbyManagerTest)
+add_subdirectory(DobbySpecConfigTest)
+add_subdirectory(DobbyProxyTest)
+

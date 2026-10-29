@@ -52,7 +52,7 @@ cmake -DCMAKE_BUILD_TYPE=Debug -DRDK_PLATFORM=DEV_VM -DCMAKE_INSTALL_PREFIX:PATH
 | `-DSETTINGS_APPEND`         | Valid UNIX path                                      | Settings to append to the base settings file as defined in `-DSETTINGS_FILE`                                                                                                                                                                                        |
 | `-DLEGACY_COMPONENTS`       | ON/OFF                                               | Enable or disable legacy components (legacy plugins, Dobby specs, ...). Defaults to OFF                                                                                                                                                                             |
 | `-DENABLE_LTO`              | ON/OFF                                               | Enable Link Time Optimisation (https://gcc.gnu.org/onlinedocs/gccint/LTO-Overview.html). Requires GCC >4,5 although versions >6 are strongly recommended. Defaults to `OFF`                                                                                         |
-| `-DENABLE_PERFETTO_TRACING` | ON/OFF                                               | Option to enable or disable Perfetto tracing. Can not be enabled for release builds. Requires Perfetto SDK to be installed, and Legacy Components enabled                                                                                                           |
+| `-DENABLE_PERFETTO_TRACING` | ON/OFF                                               | Option to enable or disable Perfetto tracing. Cannot be enabled for release builds. Requires Perfetto SDK to be installed.                                                                                                                                    |
 | `-DDOBBY_SERVICE`           | Reverse domain name string                           | Specify the Dobby dbus service name. Defaults to `org.rdk.dobby` if none specified.                                                                                                                                                                                 |
 | `-DDDOBBY_OBJECT`           | Valid UNIX path                                      | Specify the Dobby dbus object path. Defaults to `/org/rdk/dobby` if none specified.                                                                                                                                                                                 |
 | `-DUSE_STARTCONTAINER_HOOK` | ON/OFF                                               | Whether to use the startcontainer OCI hook or not. Defaults to OFF.                                                                                                                                                                                                 |
@@ -74,6 +74,22 @@ If you with to develop Dobby further, detailed instructions on setting up a deve
 * A high level overview of Dobby can be found at RDKCentral [here](https://wiki.rdkcentral.com/display/ASP/Dobby)
 * Code documentation can be generated with Doxygen by running `doxygen ./Doxyfile`
 * Doxygen documentation is hosted here: https://rdkcentral.github.io/Dobby/
+
+### Subsystem Documentation
+
+The repository also includes modular, self-contained guides for the native subsystems:
+
+* [Subsystem documentation index](docs/README.md)
+* [Daemon](daemon/README.md)
+* [Bundle and OCI configuration](bundle/README.md)
+* [IPC and D-Bus](AppInfrastructure/IpcService/README.md)
+* [Client](client/README.md)
+* [RDK plugin launcher](pluginLauncher/README.md)
+* [RDK plugins](rdkPlugins/README.md)
+* [AppInfrastructure](AppInfrastructure/README.md)
+* [Settings, utilities, tracing, and protocol](settings/README.md)
+* [Legacy plugins](plugins/README.md)
+* [IPC utilities, runtime schema, and test infrastructure](ipcUtils/README.md)
 
 # Usage
 ## DobbyDaemon
@@ -124,6 +140,51 @@ Usage: DobbyBundleGenerator <option(s)>
   -i, --inputpath=PATH          Path to Dobby JSON Spec for container
   -o, --outputDirectory=PATH    Where to save the generated OCI bundle
 ```
+
+## Dobby Spec Format
+When using `DobbyDaemon` or `DobbyBundleGenerator`, containers are described using a Dobby-specific JSON spec file. Example specs can be found in `tests/L2_testing/dobby_specs/`.
+
+The table below lists the supported top-level fields. Fields marked **mandatory** must always be present.
+
+| Field | Type | Mandatory | Description |
+|-------|------|-----------|-------------|
+| `version` | string | Yes | Spec version. Currently `"1.0"` or `"1.1"`. |
+| `args` | array | Yes | Command and arguments to run inside the container. |
+| `user` | object | Yes | `uid` and `gid` the container process runs as. |
+| `memLimit` | integer | Yes | Requested memory limit in bytes. When `swapLimit` is present, this value is scaled down according to the host's RAM and active zram swap capacity before being applied to `memory.limit_in_bytes`. Other swap types, such as swapfiles and partitions, are ignored. Values below 256 KiB are accepted but will only generate a warning and may not be effective. |
+| `swapLimit` | integer | No | Swap+memory limit in bytes (`memory.memsw.limit_in_bytes`). Must be ≥ the effective scaled memory limit. Defaults to unlimited (-1) when absent. |
+| `env` | array | No | Environment variables in `"KEY=VALUE"` format. |
+| `cwd` | string | No | Working directory inside the container. |
+| `console` | object | No | Console log settings: `path` and `limit` (bytes). |
+| `etc` | object | No | Inline `/etc` file content (`passwd`, `group`, `hosts`, `services`, `ld.so.preload`). |
+| `network` | string | No | Network mode: `"nat"`, `"open"`, or `"private"`. Defaults to `"private"`. |
+| `mounts` | array | No | Additional bind-mounts into the container. |
+| `cpu` | object | No | CPU cgroup settings: `shares` (percentage 1–100) and `cores` (bitmask string). |
+| `rtPriority` | object | No | Real-time scheduling priority settings. |
+| `userNs` | boolean | No | Enable user namespacing. Defaults to `true`. |
+| `gpu` | object | No | GPU device node access settings. |
+| `vpu` | object | No | VPU device node access settings. |
+| `devices` | array | No | Additional device nodes to whitelist. |
+| `capabilities` | array | No | Linux capabilities to grant the container. |
+| `seccomp` | object | No | Seccomp syscall filter profile. |
+| `syslog` | object | No | Syslog plugin configuration. |
+| `dbus` | object | No | D-Bus access configuration. |
+| `restartOnCrash` | boolean | No | Restart the container automatically if it crashes. |
+| `plugins` | object | No | Legacy plugin configuration (prefer `rdkPlugins`). |
+
+### Memory configuration example
+
+```json
+{
+    "version": "1.0",
+    "args": [ "/usr/bin/myapp" ],
+    "user": { "uid": 1000, "gid": 1000 },
+    "memLimit": 67108864,
+    "swapLimit": 134217728
+}
+```
+
+When `swapLimit` is present, `memLimit` is scaled down based on the host's active zram-swap-to-RAM ratio before it is applied to `memory.limit_in_bytes`. Swapfiles and swap partitions are not included in this ratio. `swapLimit` sets the combined memory+swap ceiling enforced by the kernel cgroup (`memory.memsw.limit_in_bytes`). When omitted, `memLimit` is applied directly and memory+swap is unlimited (-1), allowing the container to use as much swap as the system provides.
 
 ## DobbyTool
 This is a simple command line tool that is used for debugging purporses. It connects to the Dobby daemon over dbus and allows for debugging and testing containers.

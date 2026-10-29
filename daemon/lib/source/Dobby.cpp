@@ -385,10 +385,6 @@ void Dobby::logJournaldPrinter(int level, const char *file, const char *func,
         case AI_DEBUG_LEVEL_DEBUG:
             logLevel = "DBG: ";
             break;
-        default:
-	    AI_LOG_WARN("Unknown debug level: %d", level);
-            logLevel = ": ";
-            break;
     }
 
     sd_journal_send("SYSLOG_IDENTIFIER=DobbyDaemon",
@@ -642,10 +638,14 @@ void Dobby::initIpcMethods()
         {   DOBBY_CTRL_INTERFACE,        DOBBY_CTRL_METHOD_START,                   &Dobby::startFromSpec          },
         {   DOBBY_CTRL_INTERFACE,        DOBBY_CTRL_METHOD_START_FROM_SPEC,         &Dobby::startFromSpec          },
 #else
+#if !defined(DOBBY_PROD)
         {   DOBBY_CTRL_INTERFACE,        DOBBY_CTRL_METHOD_START,                   &Dobby::startFromBundle        },
+#endif // !defined(DOBBY_PROD)
 #endif //defined(LEGACY_COMPONENTS)
 
+#if !defined(DOBBY_PROD)
         {   DOBBY_CTRL_INTERFACE,        DOBBY_CTRL_METHOD_START_FROM_BUNDLE,       &Dobby::startFromBundle        },
+#endif // !defined(DOBBY_PROD)
         {   DOBBY_CTRL_INTERFACE,        DOBBY_CTRL_METHOD_STOP,                    &Dobby::stop                   },
         {   DOBBY_CTRL_INTERFACE,        DOBBY_CTRL_METHOD_PAUSE,                   &Dobby::pause                  },
         {   DOBBY_CTRL_INTERFACE,        DOBBY_CTRL_METHOD_RESUME,                  &Dobby::resume                 },
@@ -719,7 +719,7 @@ void Dobby::ping(std::shared_ptr<AI_IPC::IAsyncReplySender> replySender)
 
     // If running as systemd service then also use this to wag the dog
 #if defined(RDK) && defined(USE_SYSTEMD)
-    mWorkQueue->postWork(
+    if (!mWorkQueue->postWork(
         [this]()
         {
             if (mWatchdogTimerId >= 0)
@@ -730,8 +730,10 @@ void Dobby::ping(std::shared_ptr<AI_IPC::IAsyncReplySender> replySender)
                     AI_LOG_SYS_ERROR(-ret, "failed to send watchdog notification");
                 }
             }
-        }
-    );
+        }))
+    {
+        AI_LOG_WARN("failed to queue watchdog notification work");
+    }
 #endif
 
     AI_LOG_FN_EXIT();
@@ -1072,6 +1074,19 @@ void Dobby::startFromBundle(std::shared_ptr<AI_IPC::IAsyncReplySender> replySend
 {
     AI_LOG_FN_ENTRY();
 
+#if defined(DOBBY_PROD)
+    AI_LOG_ERROR("startFromBundle IPC method is disabled in production builds");
+
+    AI_IPC::VariantList prodResults = { int32_t(-1) };
+    if (!replySender->sendReply(prodResults))
+    {
+        AI_LOG_ERROR("failed to send reply");
+    }
+
+    AI_LOG_FN_EXIT();
+    return;
+#endif // defined(DOBBY_PROD)
+
     // Expecting 3/6/8 args:
     // (string id, string bundlePath, vector<unixfd> files)
     // (string id, string bundlePath, vector<unixfd> files, string command, string displaySocket, vector<string> envVars)
@@ -1213,13 +1228,11 @@ void Dobby::stop(std::shared_ptr<AI_IPC::IAsyncReplySender> replySender)
 
                 // Fire off the reply
                 if (!replySender->sendReply({ result }))
-		{
-			AI_LOG_ERROR("Failed to send reply from stop lambda");
-		}
+                {
+                    AI_LOG_ERROR("Failed to send reply from stop lambda");
+                }
 
-            };
-
-        // Queue the work, if successful then we're done
+            };        // Queue the work, if successful then we're done
         if (mWorkQueue->postWork(std::move(doStopLambda)))
         {
             AI_LOG_FN_EXIT();
@@ -1271,13 +1284,11 @@ void Dobby::pause(std::shared_ptr<AI_IPC::IAsyncReplySender> replySender)
 
                 // Fire off the reply
                 if (!replySender->sendReply({ result }))
-		{
-			AI_LOG_ERROR("Failed to send reply from pause lambda");
-		}
+                {
+                    AI_LOG_ERROR("Failed to send reply from pause lambda");
+                }
 
-            };
-
-        // Queue the work, if successful then we're done
+            };        // Queue the work, if successful then we're done
         if (mWorkQueue->postWork(std::move(doPauseLambda)))
         {
             AI_LOG_FN_EXIT();
@@ -1719,8 +1730,8 @@ void Dobby::exec(std::shared_ptr<AI_IPC::IAsyncReplySender> replySender)
         auto doExecLambda =
             [manager = mManager,
              descriptor,
-	     options = std::move(options),
-	     command = std::move(command),
+             options = std::move(options),
+             command = std::move(command),
 
              replySender]()
             {
@@ -1785,9 +1796,9 @@ void Dobby::getState(std::shared_ptr<AI_IPC::IAsyncReplySender> replySender)
 
                 // Fire off the reply
                 if (!replySender->sendReply({ result }))
-		{
-			AI_LOG_ERROR("Failed to send reply from getState lambda");
-		}
+                {
+                    AI_LOG_ERROR("Failed to send reply from getState lambda");
+                }
 
             };
 
@@ -1874,13 +1885,11 @@ void Dobby::getInfo(std::shared_ptr<AI_IPC::IAsyncReplySender> replySender)
 
                 // Fire off the reply
                 if (!replySender->sendReply({ result }))
-		{
-			AI_LOG_ERROR("Failed to send reply from getState lambda");
-		}
+                {
+                    AI_LOG_ERROR("Failed to send reply from getState lambda");
+                }
 
-            };
-
-        // Queue the work, if successful then we're done
+            };        // Queue the work, if successful then we're done
         if (mWorkQueue->postWork(std::move(doGetInfoLambda)))
         {
             AI_LOG_FN_EXIT();
@@ -1891,7 +1900,7 @@ void Dobby::getInfo(std::shared_ptr<AI_IPC::IAsyncReplySender> replySender)
     // Fire off an error reply
     if (!replySender->sendReply({ "" }))
     {
-	    AI_LOG_ERROR("Failed to send fallback reply from getInfo");
+        AI_LOG_ERROR("Failed to send fallback reply from getInfo");
     }
 
 
@@ -1935,13 +1944,11 @@ void Dobby::list(std::shared_ptr<AI_IPC::IAsyncReplySender> replySender)
             }
             // Fire off the reply
             if (!replySender->sendReply({ cds, ids }))
-	    {
-		    AI_LOG_ERROR("Failed to send reply from list lambda");
-	    }
+            {
+                AI_LOG_ERROR("Failed to send reply from list lambda");
+            }
 
-        };
-
-    // Queue the work, if successful then we're done
+        };    // Queue the work, if successful then we're done
     if (mWorkQueue->postWork(std::move(doListLambda)))
     {
         AI_LOG_FN_EXIT();
@@ -1999,8 +2006,10 @@ void Dobby::createBundle(std::shared_ptr<AI_IPC::IAsyncReplySender> replySender)
                     // Try and get container stats
                     bool result = manager->createBundle(id, spec);
 
-                    // Fire off the reply
-                    replySender->sendReply({ result });
+                    if (!replySender->sendReply({ result }))
+                    {
+                        AI_LOG_ERROR("failed to send createBundle reply");
+                    }
                 };
 
             // Queue the work, if successful then we're done
@@ -2050,8 +2059,10 @@ void Dobby::getSpec(std::shared_ptr<AI_IPC::IAsyncReplySender> replySender)
                 // Get the container spec
                 std::string spec = manager->specOfContainer(descriptor);
 
-                // Fire off the reply
-                replySender->sendReply({ spec });
+                if (!replySender->sendReply({ spec }))
+                {
+                    AI_LOG_ERROR("failed to send getSpec reply");
+                }
             };
 
         // Queue the work, if successful then we're done
@@ -2106,13 +2117,11 @@ void Dobby::getOCIConfig(std::shared_ptr<AI_IPC::IAsyncReplySender> replySender)
 
                 // Fire off the reply
                 if (!replySender->sendReply({ configJson }))
-		{
-			AI_LOG_ERROR("Failed to send reply from getOCIConfig lambda");
-		}
+                {
+                    AI_LOG_ERROR("Failed to send reply from getOCIConfig lambda");
+                }
 
-            };
-
-        // Queue the work, if successful then we're done
+            };        // Queue the work, if successful then we're done
         if (mWorkQueue->postWork(std::move(doCreateBundleLambda)))
         {
             AI_LOG_FN_EXIT();
@@ -2450,3 +2459,4 @@ bool Dobby::onWatchdogTimer()
 }
 
 #endif // defined(RDK) && defined(USE_SYSTEMD)
+

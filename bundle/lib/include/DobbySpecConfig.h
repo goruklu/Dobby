@@ -28,6 +28,7 @@
 
 #include <set>
 #include <bitset>
+#include <cstdint>
 #include <memory>
 
 namespace ctemplate {
@@ -135,6 +136,7 @@ private:
     JSON_FIELD_PROCESSOR(processMounts);
     JSON_FIELD_PROCESSOR(processLegacyPlugins);
     JSON_FIELD_PROCESSOR(processMemLimit);
+    JSON_FIELD_PROCESSOR(processSwapLimit);
     JSON_FIELD_PROCESSOR(processGpu);
     JSON_FIELD_PROCESSOR(processVpu);
     JSON_FIELD_PROCESSOR(processDbus);
@@ -173,6 +175,9 @@ private:
     static void addGpuDevNodes(const std::shared_ptr<const IDobbySettings::HardwareAccessSettings> &settings,
                                ctemplate::TemplateDictionary *dict);
 
+    static int64_t calculatePhysicalMemoryLimit(int64_t memLimit,
+                                                double swapToRamRatio);
+
     static  void addVpuDevNodes(const std::shared_ptr<const IDobbySettings::HardwareAccessSettings> &settings,
                                 ctemplate::TemplateDictionary *dict);
 
@@ -186,6 +191,7 @@ private:
 private:
     bool mValid;
     ctemplate::TemplateDictionary* mDictionary;
+    double mZramSwapToRamRatio;
 
 private:
     Json::Value mSpec;

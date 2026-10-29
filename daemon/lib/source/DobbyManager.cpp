@@ -482,6 +482,7 @@ void DobbyManager::cleanupContainersShutdown()
 {
     AI_LOG_FN_ENTRY();
 
+    std::unique_lock<std::mutex> locker(mLock);
     AI_LOG_INFO("Dobby shutting down - stopping %lu containers", mContainers.size());
 
     auto it = mContainers.begin();
@@ -493,26 +494,41 @@ void DobbyManager::cleanupContainersShutdown()
             (it->second->state == DobbyContainer::State::Hibernated) || \
             (it->second->state == DobbyContainer::State::Awakening))
         {
-            AI_LOG_INFO("Stopping container %s", it->first.c_str());
+            ContainerId id = it->first;
+            int32_t descriptor = it->second->descriptor;
+            AI_LOG_INFO("Stopping container %s", id.c_str());
+            ++it;
+            locker.unlock();
             // By calling the "proper" stop method here, any listening services will be
             // notified of the container stop event
-            if (!stopContainer(it->second->descriptor, false))
+            bool stopSuccess = stopContainer(descriptor, false);
+            locker.lock();
+
+            auto eraseIt = mContainers.find(id);
+            if (eraseIt == mContainers.end())
+                continue;
+
+            if (!stopSuccess)
             {
                 // As DobbyRunC::killCont already handles problem of masked SIGTERM in
                 // case we failed to stop it means that it tried to SIGKILL too, so
                 // container must be in uninterrable sleep and we cannot do anything
                 // Remove it container from the list (even though it wasn't clean up)
                 // to avoid repeating indefinitely. It will be cleaned on boot-up
-                it = mContainers.erase(it);
-                AI_LOG_ERROR("Failed to stop container %s. Will attempt to clean up at daemon restart", it->first.c_str());
+                mContainers.erase(eraseIt);
+                AI_LOG_ERROR("Failed to stop container %s. Will attempt to clean up at daemon restart", id.c_str());
             }
             else
             {
                 // This would normally be done async by the runc monitor thread, but we're
                 // shutting down so we want to run synchronously
-                handleContainerTerminate(it->first, it->second, 0);
-                it = mContainers.erase(it);
+                handleContainerTerminate(eraseIt->first, eraseIt->second, 0);
+                mContainers.erase(eraseIt);
             }
+        }
+        else
+        {
+            ++it;
         }
     }
 
@@ -1296,15 +1312,66 @@ bool DobbyManager::restartContainer(const ContainerId &id,
 
 // -----------------------------------------------------------------------------
 /**
+ *  @brief Sends SIGKILL to every process in the container's cgroup and
+ *  confirms it actually died.
+ *
+ *  A crashed or hung process inside the container can leave orphaned
+ *  descendants that the container's init hasn't (or, if itself stuck, can't)
+ *  reaped, which would otherwise leave the container running forever from
+ *  runc/Dobby's point of view. Killing the whole cgroup (rather than just the
+ *  tracked init process) means the container is torn down even if init isn't
+ *  able to clean up after its children itself.
+ *
+ *  SIGKILL can't be masked or ignored, but a process stuck in an
+ *  uninterruptible sleep (D state) won't die until it exits that syscall, so
+ *  this waits for the container to actually leave the Running state instead
+ *  of just trusting that sending the signal was enough.
+ *
+ *  @param[in]  id  The id of the container to kill.
+ *
+ *  @return true if the container was confirmed stopped, false if it is still
+ *  running after all retries (almost always a process wedged in an
+ *  uninterruptible sleep, which no amount of signalling can fix).
+ */
+bool DobbyManager::forceKillContainerAndVerify(const ContainerId &id)
+{
+    mRunc->killCont(id, SIGKILL, /*all=*/true);
+
+    const int maxRetry = 10;
+    for (int attempt = 1; attempt <= maxRetry; attempt++)
+    {
+        /* coverity[sleep : FALSE] */
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        if (mRunc->state(id) != DobbyRunC::ContainerStatus::Running)
+            return true;
+    }
+
+    AI_LOG_ERROR("SIGKILL did not stop container '%s' - a process is likely "
+                 "stuck in an uninterruptible sleep", id.c_str());
+    return false;
+}
+
+// -----------------------------------------------------------------------------
+/**
  *  @brief Stops a running container
  *
  *  If withPrejudice is not specified (the default) then we send the init
  *  process within the container a SIGTERM.
  *
- *  If the withPrejudice is true then we use the SIGKILL signal.
+ *  If the withPrejudice is true then we SIGKILL every process in the
+ *  container's cgroup (not just the tracked init process) and block for up
+ *  to ~500ms confirming the container actually stopped, so a hung/crashed
+ *  process with orphaned descendants can't leave the container running
+ *  forever.
  *
- *  This call is asynchronous, i.e. it is a request to stop rather than a
- *  blocking call that ensures the container is stopped before returning.
+ *  A plain (non-prejudice) SIGTERM is sent asynchronously (the actual
+ *  container teardown happens in the background and @a mContainerStoppedCb
+ *  is called when it completes). However, if the container is in the
+ *  Hibernating state when this is called, the function will block for up to
+ *  DobbyHibernate::DFL_TIMEOUTE_MS while aborting the in-progress hibernation
+ *  via WakeupProcess() before sending the kill signal. This is necessary to
+ *  ensure memcr_worker has unseized the in-flight PID before it is killed.
  *
  *  The @a mContainerStoppedCb callback will be called when the container
  *  has actually been torn down.
@@ -1313,14 +1380,15 @@ bool DobbyManager::restartContainer(const ContainerId &id,
  *  @param[in]  withPrejudice   If true the container process is killed with
  *                              SIGKILL, otherwise SIGTERM is used.
  *
- *  @return true if a container with a matching id was found and a signal
- *  sent successfully to it.
+ *  @return true if a container with a matching id was found and, for a
+ *  SIGTERM, the signal was sent successfully, or for a SIGKILL, the
+ *  container was confirmed stopped.
  */
 bool DobbyManager::stopContainer(int32_t cd, bool withPrejudice)
 {
     AI_LOG_FN_ENTRY();
 
-    std::lock_guard<std::mutex> locker(mLock);
+    std::unique_lock<std::mutex> locker(mLock);
 
     // find the container
     auto it = mContainers.cbegin();
@@ -1368,7 +1436,34 @@ bool DobbyManager::stopContainer(int32_t cd, bool withPrejudice)
              container->state == DobbyContainer::State::Hibernated ||
              container->state == DobbyContainer::State::Awakening)
     {
-        if (!mRunc->killCont(id, withPrejudice ? SIGKILL : SIGTERM))
+        // If a hibernation is in progress or has entered the abort path, stop
+        // it in a blocking manner before killing the container. This ensures
+        // memcr_worker has fully unseized any in-flight PID before it is killed.
+        // Awakening alone is not enough to identify an in-flight hibernation
+        // abort: wakeupContainer() also sets Awakening before issuing WakeupProcess
+        // for a container that is already hibernated. Only treat Awakening as a
+        // hibernation abort when there is still a live in-flight PID associated
+        // with the active HibernateProcess() call.
+        if (container->state == DobbyContainer::State::Hibernating ||
+            (container->state == DobbyContainer::State::Awakening && container->hibernatingPid != 0))
+        {
+            if (!abortContainerHibernationIfNeeded(cd))
+            {
+                AI_LOG_WARN("failed to abort hibernation for container %d", cd);
+                AI_LOG_FN_EXIT();
+                return false;
+            }
+        }
+
+        if (withPrejudice)
+        {
+            if (!forceKillContainerAndVerify(id))
+            {
+                AI_LOG_FN_EXIT();
+                return false;
+            }
+        }
+        else if (!mRunc->killCont(id, SIGTERM))
         {
             AI_LOG_WARN("failed to send signal to '%s'", id.c_str());
             AI_LOG_FN_EXIT();
@@ -1401,10 +1496,8 @@ bool DobbyManager::stopContainer(int32_t cd, bool withPrejudice)
             }
 
             // Container has been resumed, so kill it now
-            if (!mRunc->killCont(id, SIGKILL))
-
+            if (!forceKillContainerAndVerify(id))
             {
-                AI_LOG_WARN("failed to send signal to '%s'", id.c_str());
                 AI_LOG_FN_EXIT();
                 return false;
             }
@@ -1632,31 +1725,70 @@ bool DobbyManager::hibernateContainer(int32_t cd, const std::string& options)
     }
 
     std::thread hibernateThread =
-        std::thread([=]()
+        std::thread([id, cd, dest = std::move(dest), compress, this]()
         {
             DobbyHibernate::Error ret = DobbyHibernate::Error::ErrorNone;
             // create a stats object for the container to get list of PIDs
             std::unique_lock<std::mutex> locker(mLock);
-            DobbyStats stats(it->first, mEnvironment, mUtilities);
-            Json::Value jsonPids = DobbyStats(it->first, mEnvironment, mUtilities).stats()["pids"];
+            // Bind to a named DobbyStats object so that the reference returned by
+            // stats() remains valid while we access it.
+            DobbyStats statsObj(id, mEnvironment, mUtilities);
+            const Json::Value &statsJson = statsObj.stats();
+            if (!statsJson.isObject())
+            {
+                AI_LOG_WARN("Stats for container '%s' is not a JSON object, cannot hibernate", id.c_str());
+                return;
+            }
+            Json::Value jsonPids = statsJson["pids"];
+
             locker.unlock();
 
             for (auto pidIt = jsonPids.begin(); pidIt != jsonPids.end(); ++pidIt)
             {
                 locker.lock();
-                if (mContainers.find(id) == mContainers.end() ||
-                    mContainers[id]->descriptor != cd ||
-                    mContainers[id]->state != DobbyContainer::State::Hibernating)
+                auto containerIt = mContainers.find(id);
+                if (containerIt == mContainers.end() ||
+                    containerIt->second->descriptor != cd ||
+                    containerIt->second->state != DobbyContainer::State::Hibernating)
                 {
                     AI_LOG_WARN("Hibernation of: %s with descriptor %d aborted", id.c_str(), cd);
+                    // Only clear hibernatingPid when the container still exists with
+                    // a matching descriptor. If it was removed entirely there is nothing to clear.
+                    if (containerIt != mContainers.end() && containerIt->second &&
+                        containerIt->second->descriptor == cd)
+                    {
+                        containerIt->second->hibernatingPid = 0;
+                    }
                     AI_LOG_FN_EXIT();
                     return;
                 }
+                // Record the in-flight PID while mLock is held so that
+                // abortContainerHibernationIfNeeded can read it atomically and
+                // issue a targeted WakeupProcess for exactly this one PID.
+                uint32_t pid = pidIt->asUInt();
+                containerIt->second->hibernatingPid = pid;
                 locker.unlock();
 
-                uint32_t pid = pidIt->asUInt();
                 ret  = DobbyHibernate::HibernateProcess(pid, DobbyHibernate::DFL_TIMEOUTE_MS,
-                        DobbyHibernate::DFL_LOCATOR, std::move(dest), compress);
+                        DobbyHibernate::DFL_LOCATOR, dest, compress);
+
+                // Clear hibernatingPid immediately after HibernateProcess returns so that
+                // the field always reflects "currently inside HibernateProcess".  The next
+                // iteration will overwrite it with the new in-flight PID while holding mLock.
+                // Without this clear, stopContainer() arriving between iterations would see a
+                // stale non-zero hibernatingPid and call WakeupProcess on an already-
+                // checkpointed (frozen) PID, potentially unfreezing it prematurely.
+                locker.lock();
+                {
+                    auto clearIt = mContainers.find(id);
+                    if (clearIt != mContainers.end() && clearIt->second &&
+                        clearIt->second->descriptor == cd)
+                    {
+                        clearIt->second->hibernatingPid = 0;
+                    }
+                }
+                locker.unlock();
+
                 if (ret != DobbyHibernate::Error::ErrorNone)
                 {
                     AI_LOG_WARN("Error hibernating pid: '%d'", pid);
@@ -1683,6 +1815,11 @@ bool DobbyManager::hibernateContainer(int32_t cd, const std::string& options)
                 return;
             }
 
+            // Clear the in-flight PID before the state transition so that any
+            // concurrent abortContainerHibernationIfNeeded sees hibernatingPid==0
+            // and skips the WakeupProcess call.
+            mContainers[id]->hibernatingPid = 0;
+
             if (mContainers[id]->state != DobbyContainer::State::Hibernating)
             {
                 AI_LOG_WARN("container state (%s) is not hibernating", id.c_str());
@@ -1708,6 +1845,132 @@ bool DobbyManager::hibernateContainer(int32_t cd, const std::string& options)
     it->second->state = DobbyContainer::State::Hibernating;
     hibernateThread.detach();
     AI_LOG_INFO("Hibernation of: %s triggered", id.c_str());
+    AI_LOG_FN_EXIT();
+    return true;
+}
+
+// -----------------------------------------------------------------------------
+/**
+ *  @brief Blocking abort of any in-progress hibernation for a container.
+ *
+ *  If the container is in the Hibernating state, sets the state to Awakening
+ *  (which signals the hibernate thread to stop iterating) and then calls
+ *  WakeupProcess for the **single in-flight PID** currently being checkpointed,
+ *  if any. Only this one PID needs a wakeup: memcr holds a ptrace seize on it
+ *  and sending SIGKILL while that seize is active triggers an assert in
+ *  memcr_worker. Previously-checkpointed PIDs are frozen but have no active
+ *  seize and respond to SIGKILL normally. Future PIDs are prevented from
+ *  starting by the Awakening state check in the hibernate thread.
+ *
+ *  The in-flight PID is read atomically from DobbyContainer::hibernatingPid,
+ *  which is written under mLock immediately before each HibernateProcess() call
+ *  and cleared under mLock when the full hibernation sequence completes.
+ *
+ *  mLock is held throughout this function, including during the WakeupProcess
+ *  call. The hibernate thread is blocked inside HibernateProcess() (a memcr
+ *  socket call) when inflightPid != 0 and does not hold mLock at that point,
+ *  so there is no deadlock risk.
+ *
+ *  Unlike wakeupContainer(), this runs entirely on the calling thread (no new
+ *  thread spawned) and does not emit the awoken callback.
+ *
+ *  @param[in]  cd      The descriptor of the container to abort hibernation for.
+ *
+ *  @return true on success (or if no abort was needed); false if:
+ *            - the container was not found by descriptor at entry, or
+ *            - WakeupProcess() failed for the in-flight PID (state is set to
+ *              Stopping so that cleanupContainersShutdown() does not attempt a
+ *              redundant killCont(); the hibernate thread will see
+ *              state != Hibernating and abort its loop).
+ *          Callers must not proceed with killCont() when false is returned.
+ */
+bool DobbyManager::abortContainerHibernationIfNeeded(int32_t cd)
+{
+    AI_LOG_FN_ENTRY();
+
+    // find the container (mLock must already be held by the caller)
+    auto it = mContainers.cbegin();
+    for (; it != mContainers.cend(); ++it)
+    {
+        if (it->second && (it->second->descriptor == cd))
+            break;
+    }
+
+    if (it == mContainers.cend())
+    {
+        AI_LOG_WARN("failed to find container with descriptor %d", cd);
+        AI_LOG_FN_EXIT();
+        return false;
+    }
+
+    const ContainerId id = it->first;
+
+    // Awakening + hibernatingPid != 0 means wakeupContainer() raced ahead of the
+    // hibernate thread finishing its current PID: the state was already flipped
+    // but the in-flight PID hasn't been unseized yet, so it still needs an abort.
+    const bool inFlightAbortNeeded =
+        (it->second->state == DobbyContainer::State::Hibernating) ||
+        (it->second->state == DobbyContainer::State::Awakening && it->second->hibernatingPid != 0);
+
+    if (!inFlightAbortNeeded)
+    {
+        AI_LOG_INFO("Container '%s' is not hibernating, abort not needed", id.c_str());
+        AI_LOG_FN_EXIT();
+        return true;
+    }
+
+    // Read the in-flight PID while mLock is held. This is the single PID
+    // currently inside DobbyHibernate::HibernateProcess() — memcr holds a
+    // ptrace seize on it. Sending SIGKILL while that seize is active triggers
+    // assert(WIFSTOPPED(status)) inside memcr_worker. We must drive memcr to
+    // unseize_target() for this PID before issuing killCont().
+    const uint32_t inflightPid = it->second->hibernatingPid;
+
+    // Set state to Awakening: the hibernate thread checks this at the top of
+    // each PID loop iteration and will abort before starting any further
+    // HibernateProcess() call.
+    it->second->state = DobbyContainer::State::Awakening;
+
+    if (inflightPid != 0)
+    {
+        // WakeupProcess sends MEMCR_RESTORE for the single in-flight PID.
+        // memcr responds by calling unseize_target() and returning, after which
+        // it is safe to SIGKILL the process.
+        // The hibernate thread is blocked inside HibernateProcess() at this
+        // point and does not hold mLock, so calling WakeupProcess under mLock
+        // is safe — there is no deadlock risk.
+        // Previously-checkpointed PIDs need no wakeup: they are frozen but
+        // respond to SIGKILL normally (memcr holds no ptrace seize on them).
+        // Future PIDs will not be reached because state is now Awakening.
+        AI_LOG_INFO("Aborting hibernation of '%s': sending WakeupProcess for in-flight PID %u",
+                    id.c_str(), inflightPid);
+        const DobbyHibernate::Error wakeRet = DobbyHibernate::WakeupProcess(static_cast<pid_t>(inflightPid));
+
+        if (wakeRet != DobbyHibernate::Error::ErrorNone)
+        {
+            // WakeupProcess failed. We cannot safely issue killCont() while memcr
+            // holds an active ptrace seize on this PID. Mark the container as
+            // Stopping so that subsequent cleanup paths do not attempt killCont()
+            // (which would crash memcr_worker). The hibernate thread will see
+            // state != Hibernating and abort its loop.
+            it->second->state = DobbyContainer::State::Stopping;
+            AI_LOG_WARN("WakeupProcess failed for in-flight PID %u (ret=%d) while aborting hibernation of '%s'",
+                        inflightPid, static_cast<int>(wakeRet), id.c_str());
+            AI_LOG_FN_EXIT();
+            return false;
+        }
+
+        it->second->hibernatingPid = 0;
+        it->second->state = DobbyContainer::State::Stopping;
+    }
+    else
+    {
+        AI_LOG_INFO("Aborting hibernation of '%s': no in-flight PID", id.c_str());
+        it->second->hibernatingPid = 0;
+        it->second->state = DobbyContainer::State::Stopping;
+    }
+
+    AI_LOG_INFO("Hibernation abort of '%s' complete", id.c_str());
     AI_LOG_FN_EXIT();
     return true;
 }
@@ -2277,11 +2540,18 @@ bool DobbyManager::removeMount(int32_t cd, const std::string &source)
  *  @param[in]  options     Options to execute the command with.
  *
  *  @return true if a container with a matching descriptor was found and the command
- *  was run
+ *  was run. Always returns false in release/production builds as exec is only
+ *  supported in debug/development builds.
  */
 bool DobbyManager::execInContainer(int32_t cd, const std::string &options, const std::string &command)
 {
     AI_LOG_FN_ENTRY();
+
+#if defined(DOBBY_PROD)
+    AI_LOG_ERROR("exec is not supported in production builds");
+    AI_LOG_FN_EXIT();
+    return false;
+#else
 
     std::lock_guard<std::mutex> locker(mLock);
 
@@ -2341,6 +2611,7 @@ bool DobbyManager::execInContainer(int32_t cd, const std::string &options, const
     AI_LOG_WARN("Container '%s' was not running, command could not be executed", id.c_str());
     AI_LOG_FN_EXIT();
     return false;
+#endif // defined(DOBBY_PROD)
 }
 
 // -----------------------------------------------------------------------------
@@ -2997,6 +3268,55 @@ bool DobbyManager::onPreDestructionHook(const ContainerId &id,
 }
 #endif //defined(LEGACY_COMPONENTS)
 
+// -----------------------------------------------------------------------------
+/**
+ *  @brief Translates a raw wait status from DobbyInit into a synthesised
+ *  WIFSIGNALED-style status when the exit code matches the 128+signum
+ *  convention used by DobbyInit to propagate signal death info.
+ *
+ *  DobbyInit is PID 1 inside the container's PID namespace and cannot be
+ *  killed by a self-raised signal (the kernel drops signals with SIG_DFL
+ *  disposition for namespace init).  Instead DobbyInit exits with code
+ *  128+signum when it receives a signal.  This helper detects that pattern
+ *  and synthesises the equivalent WIFSIGNALED wait status so the rest of
+ *  the code sees the true cause of death.
+ *
+ *  @param[in]  rawStatus   The raw wait status from waitpid().
+ *
+ *  @return Possibly-modified wait status.
+ */
+int DobbyManager::synthesizeContainerSignalStatus(int rawStatus)
+{
+    if (WIFEXITED(rawStatus))
+    {
+        int exitCode = WEXITSTATUS(rawStatus);
+        if (exitCode > 128 && exitCode < 128 + NSIG)
+        {
+            int sig = exitCode - 128;
+
+            // Returns true for signals whose default action produces a
+            // core dump on Linux.
+            auto signalDumpsCore = [](int s) -> bool {
+                switch (s) {
+                    case SIGABRT: case SIGSEGV: case SIGFPE:
+                    case SIGILL:  case SIGBUS:  case SIGQUIT:
+                        return true;
+                    default:
+                        return false;
+                }
+            };
+
+            // Synthesise WIFSIGNALED status: signal number in bits 0-6,
+            // bit 7 (WCOREDUMP) set for core-dumping signals.
+            int status = sig & 0x7f;
+            if (signalDumpsCore(sig))
+                status |= 0x80;
+            return status;
+        }
+    }
+    return rawStatus;
+}
+
 /**
  * @brief Perform all the necessary cleanup and run plugins required when
  * a container has terminated.
@@ -3161,6 +3481,36 @@ void DobbyManager::onChildExit()
         if (rc == container->containerPid)
         {
             const ContainerId &id = it->first;
+
+            // DobbyInit is PID 1 inside the container's PID namespace and
+            // cannot be killed by a self-raised signal (the kernel drops
+            // signals with SIG_DFL disposition for namespace init).  Instead
+            // DobbyInit exits with code 128+signum when it receives a signal.
+            // Detect that convention here and synthesise a WIFSIGNALED-style
+            // wait status so the rest of the code sees the true cause of death.
+            {
+                int origStatus = status;
+                status = synthesizeContainerSignalStatus(status);
+                if (status != origStatus)
+                {
+                    int exitCode = WEXITSTATUS(origStatus);
+                    int sig = exitCode - 128;
+                    AI_LOG_INFO("container '%s' exited with code %d, "
+                                "interpreting as killed by signal %d (%s) "
+                                "(PID 1 namespace init convention)",
+                                id.c_str(), exitCode, sig, strsignal(sig));
+                }
+                else if (WIFSIGNALED(status))
+                {
+                    // Direct signal death (e.g. SIGKILL which cannot be caught
+                    // by DobbyInit's signal handler). Log the signal info so
+                    // there is a clear indication of why the container died.
+                    int sig = WTERMSIG(status);
+                    AI_LOG_INFO("container '%s' killed by signal %d (%s)%s",
+                                id.c_str(), sig, strsignal(sig),
+                                WCOREDUMP(status) ? " (core dumped)" : "");
+                }
+            }
 
             AI_LOG_INFO("runc for container '%s' has quit (pid:%d status:0x%04x)",
                         id.c_str(), containerPid, status);
@@ -3405,6 +3755,7 @@ bool DobbyManager::invalidContainerCleanupTask()
                 mRunc->killCont(it->first, SIGKILL, true);
 
                 // Did we actually kill it? Give it some time, then check the status
+                /* coverity[sleep : FALSE] */
                 std::this_thread::sleep_for(std::chrono::milliseconds(200));
                 DobbyRunC::ContainerStatus state = mRunc->state(it->first);
 
@@ -3445,3 +3796,5 @@ bool DobbyManager::shouldEnableSTrace(const std::shared_ptr<DobbyConfig> &config
 
     return std::find(apps.begin(), apps.end(), hostName) != apps.end();
 }
+
+

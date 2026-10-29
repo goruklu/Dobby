@@ -28,6 +28,7 @@
 #include <array>
 #include <atomic>
 #include <algorithm>
+#include <cinttypes>
 #include <grp.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -36,6 +37,8 @@
 #include <sys/capability.h>
 #include <sys/stat.h>
 #include <fstream>
+#include <sstream>
+#include <string>
 
 // Compile time generated strings that (in theory) speeds up the processing
 // of ctemplate expanding
@@ -62,6 +65,10 @@ static const ctemplate::StaticTemplateString USERNS_DISABLED =
 
 static const ctemplate::StaticTemplateString MEM_LIMIT =
     STS_INIT(MEM_LIMIT, "MEM_LIMIT");
+static const ctemplate::StaticTemplateString MEM_SWAP =
+    STS_INIT(MEM_SWAP, "MEM_SWAP");
+static const ctemplate::StaticTemplateString SWAPPINESS_ENABLED =
+    STS_INIT(SWAPPINESS_ENABLED, "SWAPPINESS_ENABLED");
 
 static const ctemplate::StaticTemplateString CPU_SHARES_ENABLED =
     STS_INIT(CPU_SHARES_ENABLED, "CPU_SHARES_ENABLED");
@@ -187,8 +194,78 @@ static const ctemplate::StaticTemplateString SECCOMP_SYSCALLS =
 #define JSON_FLAG_FILECAPABILITIES  (0x1U << 20)
 #define JSON_FLAG_VPU               (0x1U << 21)
 #define JSON_FLAG_SECCOMP           (0x1U << 22)
+#define JSON_FLAG_SWAPLIMIT          (0x1U << 23)
 
 int DobbySpecConfig::mNumCores = -1;
+
+int64_t DobbySpecConfig::calculatePhysicalMemoryLimit(int64_t memLimit,
+                                                      double swapToRamRatio)
+{
+    return static_cast<int64_t>((1.0 / (1.0 + swapToRamRatio)) * static_cast<double>(memLimit));
+}
+
+static double getZramSwapToRamRatio()
+{
+    std::ifstream meminfo("/proc/meminfo");
+    if (!meminfo.is_open())
+    {
+        return 0.0;
+    }
+
+    unsigned long long memTotalKb = 0;
+    std::string line;
+
+    while (std::getline(meminfo, line))
+    {
+        std::istringstream iss(line);
+        std::string key;
+        iss >> key;
+
+        if (key == "MemTotal:")
+        {
+            unsigned long long value = 0;
+            std::string units;
+            if (!(iss >> value >> units))
+            {
+                return 0.0;
+            }
+            memTotalKb = value;
+        }
+    }
+
+    if (memTotalKb == 0)
+    {
+        return 0.0;
+    }
+
+    std::ifstream swaps("/proc/swaps");
+    if (!swaps.is_open())
+    {
+        return 0.0;
+    }
+
+    unsigned long long zramTotalKb = 0;
+    std::string filename;
+    std::string type;
+    unsigned long long sizeKb = 0;
+    unsigned long long usedKb = 0;
+    int priority = 0;
+    std::getline(swaps, line);
+    while (swaps >> filename >> type >> sizeKb >> usedKb >> priority)
+    {
+        if (filename.rfind("/dev/zram", 0) == 0)
+        {
+            zramTotalKb += sizeKb;
+        }
+    }
+
+    if (zramTotalKb == 0)
+    {
+        return 0.0;
+    }
+
+    return static_cast<double>(zramTotalKb) / static_cast<double>(memTotalKb);
+}
 
 // TODO: should we only allowed these if a network namespace is enabled ?
 const std::map<std::string, int> DobbySpecConfig::mAllowedCaps =
@@ -219,6 +296,7 @@ DobbySpecConfig::DobbySpecConfig(const std::shared_ptr<IDobbyUtils> &utils,
     , mDefaultPlugins(settings->defaultPlugins())
     , mRdkPluginsData(settings->rdkPluginsData())
     , mDictionary(nullptr)
+    , mZramSwapToRamRatio(0.0)
     , mConf(nullptr)
     , mSpecVersion(SpecVersion::Unknown)
     , mUserId(-1)
@@ -301,7 +379,10 @@ DobbySpecConfig::DobbySpecConfig(const std::shared_ptr<IDobbyUtils> &utils,
     : mUtilities(utils)
     , mGpuSettings(settings->gpuAccessSettings())
     , mVpuSettings(settings->vpuAccessSettings())
+    , mDefaultPlugins(settings->defaultPlugins())
+    , mRdkPluginsData(settings->rdkPluginsData())
     , mDictionary(nullptr)
+    , mZramSwapToRamRatio(0.0)
     , mConf(nullptr)
     , mSpecVersion(SpecVersion::Unknown)
     , mUserId(-1)
@@ -504,7 +585,8 @@ bool DobbySpecConfig::parseSpec(ctemplate::TemplateDictionary* dictionary,
         { "cpu",            {   JSON_FLAG_CPU,              &DobbySpecConfig::processCpu            }   },
         { "devices",        {   JSON_FLAG_DEVICES,          &DobbySpecConfig::processDevices        }   },
         { "capabilities",   {   JSON_FLAG_CAPABILITIES,     &DobbySpecConfig::processCapabilities   }   },
-        { "seccomp",        {   JSON_FLAG_SECCOMP,          &DobbySpecConfig::processSeccomp        }   }
+        { "seccomp",        {   JSON_FLAG_SECCOMP,          &DobbySpecConfig::processSeccomp        }   },
+        { "swapLimit",      {   JSON_FLAG_SWAPLIMIT,         &DobbySpecConfig::processSwapLimit      }   }
     };
 
     // step 1 - parse the 'dobby' spec document
@@ -523,6 +605,11 @@ bool DobbySpecConfig::parseSpec(ctemplate::TemplateDictionary* dictionary,
                               reader.getFormattedErrorMessages().c_str());
             return false;
         }
+    }
+
+    if (mSpec.isMember("swapLimit") && mSpec["swapLimit"].isIntegral())
+    {
+        mZramSwapToRamRatio = getZramSwapToRamRatio();
     }
 
     // step 2 - get the version number of the spec first, it may determine how
@@ -611,6 +698,12 @@ bool DobbySpecConfig::parseSpec(ctemplate::TemplateDictionary* dictionary,
     }
 
     // step 5 - for any fields that haven't been set, ensure we set the defaults
+    if (!(flags & JSON_FLAG_CWD))
+    {
+        static const ctemplate::TemplateString cwdValue("WORKING_DIRECTORY");
+        dictionary->SetValue(cwdValue, "/");
+    }
+
     if (!(flags & JSON_FLAG_USERNS))
     {
         dictionary->ShowSection(USERNS_ENABLED);
@@ -627,6 +720,21 @@ bool DobbySpecConfig::parseSpec(ctemplate::TemplateDictionary* dictionary,
         dictionary->SetIntValue(RLIMIT_RTPRIO, 0);
     }
 
+    if (!(flags & JSON_FLAG_SWAPLIMIT))
+    {
+        // swapLimit not supplied: leave memory+swap unlimited (-1)
+        dictionary->SetIntValue(MEM_SWAP, -1);
+    }
+
+    // swappiness is not supported on cgroups v2, only show if on v1
+    {
+        struct stat st;
+        if (stat("/sys/fs/cgroup/cgroup.controllers", &st) != 0 && errno == ENOENT)
+        {
+            dictionary->ShowSection(SWAPPINESS_ENABLED);
+        }
+    }
+
     if (!(flags & JSON_FLAG_CAPABILITIES))
     {
         dictionary->SetValue(NO_NEW_PRIVS, "true");
@@ -635,7 +743,7 @@ bool DobbySpecConfig::parseSpec(ctemplate::TemplateDictionary* dictionary,
     // step 6 - enable the RDK plugins section
     dictionary->ShowSection(ENABLE_RDK_PLUGINS);
 
-    // step 6.5 - add any default plugins in the settings file
+    // step 6.1 - add any default plugins in the settings file
     Json::Value rdkPluginData = mRdkPluginsData;
     for (const auto& pluginName : mDefaultPlugins)
     {
@@ -792,7 +900,67 @@ bool DobbySpecConfig::processCwd(const Json::Value& value,
         return false;
     }
 
-    dictionary->SetValue(cwdValue, value.asString());
+    const std::string cwd = value.asString();
+    if (cwd.empty() || cwd.front() != '/' || cwd.size() >= PATH_MAX)
+    {
+        AI_LOG_ERROR("invalid cwd field: expected a non-empty absolute path shorter than PATH_MAX");
+        return false;
+    }
+
+    // A NUL byte cannot be represented in a Unix pathname. Other bytes,
+    // including whitespace and non-ASCII characters, are valid pathname data
+    // and are escaped when the value is inserted into the OCI JSON template.
+    if (cwd.find('\0') != std::string::npos)
+    {
+        AI_LOG_ERROR("invalid cwd field: embedded NUL byte is not allowed");
+        return false;
+    }
+
+    // Treat cwd only as a container-root-relative OCI path. Do not use realpath()
+    // or any host filesystem lookup here: path resolution must be done by the
+    // container runtime after it has entered the container rootfs.
+
+    // Normalize redundant separators while rejecting dot segments, including
+    // traversal components. The normalized path is still interpreted inside
+    // the target rootfs by runc/crun; this is lexical validation, not host
+    // canonicalization and does not resolve symlinks.
+    std::string normalizedCwd;
+    normalizedCwd.reserve(cwd.size());
+    normalizedCwd = "/";
+    std::string::size_type componentStart = 1;
+    while (componentStart < cwd.size())
+    {
+        const std::string::size_type separator = cwd.find('/', componentStart);
+        const std::string::size_type componentEnd =
+            separator == std::string::npos ? cwd.size() : separator;
+        const std::string::size_type componentLength = componentEnd - componentStart;
+
+        if (componentLength != 0)
+        {
+            const std::string component = cwd.substr(componentStart, componentLength);
+            if (component == "." || component == "..")
+            {
+                AI_LOG_ERROR("invalid cwd field: dot path components are not allowed");
+                return false;
+            }
+
+            if (normalizedCwd.size() > 1)
+                normalizedCwd += '/';
+            normalizedCwd += component;
+        }
+
+        if (separator == std::string::npos)
+            break;
+        componentStart = separator + 1;
+    }
+
+    if (normalizedCwd.size() >= PATH_MAX)
+    {
+        AI_LOG_ERROR("invalid cwd field: normalized path exceeds PATH_MAX");
+        return false;
+    }
+
+    dictionary->SetValue(cwdValue, normalizedCwd);
     return true;
 }
 
@@ -860,10 +1028,9 @@ bool DobbySpecConfig::processUser(const Json::Value& value,
  *  Example json:
  *
  *          "userNs": true
- *          "userNs": false
  *
- *  This field controls whether to enable user namespacing or not, by default
- *  userns is enabled, it must explicitly be disabled.
+ *  User namespacing is mandatory for all containers. Setting userNs=false
+ *  is not supported and will result in an error.
  *
  *  @param[in]  value       The json spec document from the client
  *  @param[in]  dictionary  Pointer to the OCI dictionary to populate
@@ -873,22 +1040,33 @@ bool DobbySpecConfig::processUser(const Json::Value& value,
 bool DobbySpecConfig::processUserNs(const Json::Value& value,
                                 ctemplate::TemplateDictionary* dictionary)
 {
-    bool enabled;
     if (value.isBool())
     {
-        enabled = value.asBool();
+#if defined(DOBBY_PROD)
+        if (!value.asBool())
+        {
+            AI_LOG_ERROR("userNs=false is not supported, user namespacing is mandatory for all containers");
+            return false;
+        }
+        dictionary->ShowSection(USERNS_ENABLED);
+#else
+        dictionary->ShowSection(value.asBool() ? USERNS_ENABLED : USERNS_DISABLED);
+#endif
     }
     else if (value.isNull())
     {
-        enabled = false;
+#if defined(DOBBY_PROD)
+        // null is treated as enabled when user namespace enforcement is active
+        dictionary->ShowSection(USERNS_ENABLED);
+#else
+        dictionary->ShowSection(USERNS_DISABLED);
+#endif
     }
     else
     {
         AI_LOG_ERROR("invalid userNs field");
         return false;
     }
-
-    dictionary->ShowSection(enabled ? USERNS_ENABLED : USERNS_DISABLED);
 
     return true;
 }
@@ -917,9 +1095,10 @@ bool DobbySpecConfig::processUserNs(const Json::Value& value,
 bool DobbySpecConfig::processRtPriority(const Json::Value& value,
                                         ctemplate::TemplateDictionary* dictionary)
 {
-    int rtPriorityDefault;
-    int rtPriorityLimit;
+    int rtPriorityDefault = 0;
+    int rtPriorityLimit = 0;
 
+    std::lock_guard<std::mutex> locker(mLock);
     if (mSpecVersion == SpecVersion::Version1_0)
     {
         if (!value.isIntegral())
@@ -1273,7 +1452,90 @@ bool DobbySpecConfig::processMemLimit(const Json::Value& value,
         AI_LOG_WARN("memory limit looks dangerously low");
     }
 
-    dictionary->SetIntValue(MEM_LIMIT, memLimit);
+    // Only apply the zram-aware adjustment when swapLimit is explicitly
+    // set; otherwise keep memLimit as-is to match the memory.limit_in_bytes.
+    unsigned physLimit = memLimit;
+    if (mSpec.isMember("swapLimit") && mSpec["swapLimit"].isIntegral())
+    {
+        physLimit = static_cast<unsigned>(calculatePhysicalMemoryLimit(memLimit, mZramSwapToRamRatio));
+    }
+    dictionary->SetIntValue(MEM_LIMIT, physLimit);
+
+    return true;
+}
+
+// -----------------------------------------------------------------------------
+/**
+ *  @brief Processes the optional swap limit field.
+ *
+ *  When present, this value is used as the cgroup memory.memsw.limit_in_bytes,
+ *  allowing swap to be configured independently of the memory limit.  When
+ *  absent the swap limit is set to -1 (unlimited).
+ *
+ *  The kernel requires swap >= the effective physical memory limit, so an
+ *  error is returned if the supplied value is smaller than the adjusted
+ *  memory.limit_in_bytes value.
+ *
+ *  Example json:
+ *
+ *      "swapLimit": 2097152
+ *
+ *
+ *
+ *  @param[in]  value       The json spec document from the client
+ *  @param[in]  dictionary  Pointer to the OCI dictionary to populate
+ *
+ *  @return true if correctly processed the value, otherwise false.
+ */
+bool DobbySpecConfig::processSwapLimit(const Json::Value& value,
+                                       ctemplate::TemplateDictionary* dictionary)
+{
+    // Reject non-numeric values up front.
+    if (!value.isIntegral())
+    {
+        AI_LOG_ERROR("invalid swapLimit field");
+        return false;
+    }
+
+    // JsonCpp's isIntegral() returns true for negative integers too.  A
+    // negative value would silently wrap to a huge unsigned number and bypass
+    // the swap >= memLimit guard, so we must check sign before casting.
+    const int64_t memSwapSigned = value.asInt64();
+    if (memSwapSigned < 0)
+    {
+        AI_LOG_ERROR("swapLimit must be non-negative, got %" PRId64, memSwapSigned);
+        return false;
+    }
+
+    // The kernel requires memory.memsw.limit_in_bytes >= memory.limit_in_bytes.
+    const Json::Value& memLimitVal = mSpec["memLimit"];
+    if (memLimitVal.isIntegral())
+    {
+        const int64_t memLimitSigned = memLimitVal.asInt64();
+        if (memLimitSigned < 0)
+        {
+            AI_LOG_ERROR("memLimit is negative; cannot validate swapLimit");
+            return false;
+        }
+
+        // swapLimit must be at least the effective zram-adjusted physical limit.
+        const int64_t physLimit = calculatePhysicalMemoryLimit(memLimitSigned, mZramSwapToRamRatio);
+        if (memSwapSigned < physLimit)
+        {
+            AI_LOG_ERROR("swapLimit (%" PRId64 ") must be >= memory.limit_in_bytes (%" PRId64 ")",
+                         memSwapSigned, physLimit);
+            return false;
+        }
+    }
+
+    if (memSwapSigned > static_cast<int64_t>(UINT_MAX))
+    {
+        AI_LOG_ERROR("swapLimit (%" PRId64 ") exceeds maximum supported value for template field (%u)",
+                     memSwapSigned, UINT_MAX);
+        return false;
+    }
+
+    dictionary->SetIntValue(MEM_SWAP, static_cast<unsigned>(memSwapSigned));
 
     return true;
 }
@@ -2543,12 +2805,10 @@ bool DobbySpecConfig::processCapabilities(const Json::Value& value,
                                            EXTRA_CAPS_SECTION);
     }
 
-#if !defined(RDK)
     // allow the containered apps to inherit any file base capabilities, this
     // is needed if wanting to execute programs that have the file capabilities
     // that match the capabilities we've given the container
     dictionary->SetValue(NO_NEW_PRIVS, "false");
-#endif // !defined(RDK)
 
     return true;
 }
@@ -2788,3 +3048,5 @@ bool DobbySpecConfig::processRdkPlugins(const Json::Value& value,
 
     return true;
 }
+
+

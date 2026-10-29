@@ -310,26 +310,14 @@ static void startCommand(const std::shared_ptr<IDobbyProxy> &dobbyProxy,
 
     int32_t cd;
 
-    struct stat statbuf;
-    if (stat(path.c_str(), &statbuf) < 0)
-    {
-        readLine->printLnError("failed to stat '%s' (%d - %s)",
-                               path.c_str(), errno, strerror(errno));
-        return;
-    }
-
-    // check if path points to a directory
-    if (S_ISDIR(statbuf.st_mode))
+    // Replace stat + opendir TOCTOU by trying opendir() first. If opendir succeeds,
+    // treat as directory. If opendir fails with ENOTDIR, treat as file. If ENOENT,
+    // report missing path. Other errors are reported as opendir errors.
+    DIR *d = opendir(path.c_str());
+    if (d != nullptr)
     {
         // path points to a directory check that the path contains a config file
         struct dirent *dir;
-        DIR *d = opendir(path.c_str());
-        if (d == nullptr)
-        {
-            readLine->printLnError("failed to opendir '%s' (%d - %s)",
-                                   path.c_str(), errno, strerror(errno));
-            return;
-        }
         bool configFound = false;
         while ((dir = readdir(d)) != nullptr)
         {
@@ -352,37 +340,54 @@ static void startCommand(const std::shared_ptr<IDobbyProxy> &dobbyProxy,
     }
     else
     {
+        int opendirErr = errno;
+        if (opendirErr == ENOENT)
+        {
+            readLine->printLnError("failed to stat '%s' (%d - %s)",
+                                   path.c_str(), opendirErr, strerror(opendirErr));
+            return;
+        }
+        else if (opendirErr == ENOTDIR)
+        {
+            // Path does not point to a directory; treat as file/spec path
 #if defined(LEGACY_COMPONENTS)
-        // Path does not point to a directory, check that the file in path has
-        // a '.json' filename extension.
-        if (path.find(".json") == std::string::npos)
-        {
-            readLine->printLnError("please provide the path to a bundle or a "
-                                   "valid .json file");
-            return;
-        }
+            // Path does not point to a directory, check that the file in path has
+            // a '.json' filename extension.
+            if (path.find(".json") == std::string::npos)
+            {
+                readLine->printLnError("please provide the path to a bundle or a "
+                                       "valid .json file");
+                return;
+            }
 
-        std::ifstream file(path, std::ifstream::binary);
-        if (!file)
-        {
-            readLine->printLnError("failed to open '%s'", args[1].c_str());
-            return;
-        }
+            std::ifstream file(path, std::ifstream::binary);
+            if (!file)
+            {
+                readLine->printLnError("failed to open '%s'", args[1].c_str());
+                return;
+            }
 
-        file.seekg(0, std::ifstream::end);
-        ssize_t length = file.tellg();
-        file.seekg(0, std::ifstream::beg);
+            file.seekg(0, std::ifstream::end);
+            ssize_t length = file.tellg();
+            file.seekg(0, std::ifstream::beg);
 
-        char *buffer = new char[length];
-        file.read(buffer, length);
+            char *buffer = new char[length];
+            file.read(buffer, length);
 
-        std::string jsonSpec(buffer, length);
-        delete[] buffer;
-        cd = dobbyProxy->startContainerFromSpec(id, jsonSpec, files, command, displaySocketPath, envVars);
+            std::string jsonSpec(buffer, length);
+            delete[] buffer;
+            cd = dobbyProxy->startContainerFromSpec(id, jsonSpec, files, command, displaySocketPath, envVars);
 #else
-        readLine->printLnError("please provide the path to a bundle directory");
-        return;
+            readLine->printLnError("please provide the path to a bundle directory");
+            return;
 #endif // defined(LEGACY_COMPONENTS)
+        }
+        else
+        {
+            readLine->printLnError("failed to opendir '%s' (%d - %s)",
+                                   path.c_str(), opendirErr, strerror(opendirErr));
+            return;
+        }
     }
 
     if (cd < 0)
@@ -1552,6 +1557,7 @@ static void parseArgs(const int argc, char **argv)
                     fprintf(stderr, "Warning: Unknown option `-%c'.\n", optopt);
                 else
                     fprintf(stderr, "Warning: Unknown option character `\\x%x'.\n", optopt);
+                break;
 
             default:
                 exit(EXIT_FAILURE);
