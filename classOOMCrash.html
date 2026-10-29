@@ -145,11 +145,14 @@ Public Member Functions</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pri-methods" name="pri-methods"></a>
 Private Member Functions</h2></td></tr>
-<tr class="memitem:a45291ac0d9a64b6abada6731a97988ad" id="r_a45291ac0d9a64b6abada6731a97988ad"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classOOMCrash.html#a45291ac0d9a64b6abada6731a97988ad">readCgroup</a> (unsigned long *val)</td></tr>
-<tr class="memdesc:a45291ac0d9a64b6abada6731a97988ad"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read cgroup file.  <br /></td></tr>
-<tr class="separator:a45291ac0d9a64b6abada6731a97988ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab35c884af1d97444633c595c55339020" id="r_ab35c884af1d97444633c595c55339020"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classOOMCrash.html#ab35c884af1d97444633c595c55339020">readCgroup</a> (uint64_t *val)</td></tr>
+<tr class="memdesc:ab35c884af1d97444633c595c55339020"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read the cgroup OOM kill counter for the container.  <br /></td></tr>
+<tr class="separator:ab35c884af1d97444633c595c55339020"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1f184d084def408958d3fb1a5603a197" id="r_a1f184d084def408958d3fb1a5603a197"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classOOMCrash.html#a1f184d084def408958d3fb1a5603a197">isMemoryAtLimit</a> ()</td></tr>
+<tr class="memdesc:a1f184d084def408958d3fb1a5603a197"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if memory (or memory+swap) max usage reached the configured limit, indicating the container hit its memory ceiling.  <br /></td></tr>
+<tr class="separator:a1f184d084def408958d3fb1a5603a197"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6c2167ce041219b46feaa96316619920" id="r_a6c2167ce041219b46feaa96316619920"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classOOMCrash.html#a6c2167ce041219b46feaa96316619920">checkForOOM</a> ()</td></tr>
-<tr class="memdesc:a6c2167ce041219b46feaa96316619920"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check for Out of Memory by reading cgroup file.  <br /></td></tr>
+<tr class="memdesc:a6c2167ce041219b46feaa96316619920"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check for Out of Memory by reading cgroup files.  <br /></td></tr>
 <tr class="separator:a6c2167ce041219b46feaa96316619920"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae77f19fa6ddf2c7aac29ee1469254160" id="r_ae77f19fa6ddf2c7aac29ee1469254160"><td class="memItemLeft" align="right" valign="top"><a id="ae77f19fa6ddf2c7aac29ee1469254160" name="ae77f19fa6ddf2c7aac29ee1469254160"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>createFileForOOM</b> ()</td></tr>
@@ -255,7 +258,13 @@ Additional Inherited Members</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Check for Out of Memory by reading cgroup file. </p>
+<p>Check for Out of Memory by reading cgroup files. </p>
+<p>Detection priority:</p><ol type="1">
+<li><a class="el" href="classOOMCrash.html#ab35c884af1d97444633c595c55339020" title="Read the cgroup OOM kill counter for the container.">readCgroup()</a> succeeds, oom_kill &gt; 0 — from memory.oom_control (v1) or memory.events (v2). Authoritative: kernel OOM kill confirmed.</li>
+<li><a class="el" href="classOOMCrash.html#ab35c884af1d97444633c595c55339020" title="Read the cgroup OOM kill counter for the container.">readCgroup()</a> succeeds, oom_kill == 0 — authoritative: kernel OOM killer did not fire. A high memory watermark is NOT treated as OOM here, since it may just mean the process legitimately used its entire budget.</li>
+<li><a class="el" href="classOOMCrash.html#ab35c884af1d97444633c595c55339020" title="Read the cgroup OOM kill counter for the container.">readCgroup()</a> failed + <a class="el" href="classOOMCrash.html#a1f184d084def408958d3fb1a5603a197" title="Check if memory (or memory+swap) max usage reached the configured limit, indicating the container hit...">isMemoryAtLimit()</a> — cgroup counter unreadable (under_oom=0 on kernel &lt; 4.13, or ENOENT race). Falls back to the high-water-mark heuristic.</li>
+<li><a class="el" href="classOOMCrash.html#ab35c884af1d97444633c595c55339020" title="Read the cgroup OOM kill counter for the container.">readCgroup()</a> failed and memory not at limit — no OOM.</li>
+</ol>
 <dl class="section return"><dt>Returns</dt><dd>true if OOM detected. </dd></dl>
 
 </div>
@@ -318,6 +327,37 @@ Additional Inherited Members</h2></td></tr>
 <p>This plugin uses the postInstallation and postHalt hooks, so set those flags </p>
 
 <p>Implements <a class="el" href="classIDobbyRdkPlugin.html#aff3382d4f6fcb0e517b1c5e39efc7a59">IDobbyRdkPlugin</a>.</p>
+
+</div>
+</div>
+<a id="a1f184d084def408958d3fb1a5603a197" name="a1f184d084def408958d3fb1a5603a197"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1f184d084def408958d3fb1a5603a197">&#9670;&#160;</a></span>isMemoryAtLimit()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool OOMCrash::isMemoryAtLimit </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Check if memory (or memory+swap) max usage reached the configured limit, indicating the container hit its memory ceiling. </p>
+<p>This is used as a fallback OOM indicator on older kernels (&lt; 4.13) where the oom_kill counter does not exist and under_oom is transient. The high-water mark persists until the cgroup is destroyed.</p>
+<p>cgroups v1: compares memory.max_usage_in_bytes against memory.limit_in_bytes (and the memsw equivalents) under /sys/fs/cgroup/memory/&lt;id&gt;.</p>
+<p>cgroups v2: compares memory.peak against memory.max (and the swap equivalents) under /sys/fs/cgroup/&lt;id&gt;, falling back to the system.slice scope path - mirroring <a class="el" href="classOOMCrash.html#ab35c884af1d97444633c595c55339020" title="Read the cgroup OOM kill counter for the container.">readCgroup()</a>. A limit file may hold the literal "max" (unlimited); such pairs are skipped. memory.peak/memory.swap.peak only exist on kernel &gt;= 5.19/6.5; when absent, falls back to the "max" counter in memory.events (or memory.swap.events), which has existed since v2's memory controller was introduced and counts how many times usage tried to exceed the corresponding limit.</p>
+<dl class="section return"><dt>Returns</dt><dd>true if max usage &gt;= limit for memory or memory+swap. </dd></dl>
 
 </div>
 </div>
@@ -410,8 +450,8 @@ Additional Inherited Members</h2></td></tr>
 
 </div>
 </div>
-<a id="a45291ac0d9a64b6abada6731a97988ad" name="a45291ac0d9a64b6abada6731a97988ad"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a45291ac0d9a64b6abada6731a97988ad">&#9670;&#160;</a></span>readCgroup()</h2>
+<a id="ab35c884af1d97444633c595c55339020" name="ab35c884af1d97444633c595c55339020"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab35c884af1d97444633c595c55339020">&#9670;&#160;</a></span>readCgroup()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -422,7 +462,7 @@ Additional Inherited Members</h2></td></tr>
         <tr>
           <td class="memname">bool OOMCrash::readCgroup </td>
           <td>(</td>
-          <td class="paramtype">unsigned long *&#160;</td>
+          <td class="paramtype">uint64_t *&#160;</td>
           <td class="paramname"><em>val</em></td><td>)</td>
           <td></td>
         </tr>
@@ -434,14 +474,19 @@ Additional Inherited Members</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Read cgroup file. </p>
+<p>Read the cgroup OOM kill counter for the container. </p>
+<p>cgroups v1: parses memory.oom_control from /sys/fs/cgroup/memory/&lt;id&gt;/memory.oom_control</p>
+<p>Kernel &gt;= 4.13 exposes an 'oom_kill' field — a monotonic count of processes killed by the OOM killer. This is the preferred value.</p>
+<p>Kernel &lt; 4.13 does not have 'oom_kill'; 'under_oom' is 1 while the cgroup is actively under OOM pressure (transient — may clear before postHalt runs; <a class="el" href="classOOMCrash.html#a1f184d084def408958d3fb1a5603a197" title="Check if memory (or memory+swap) max usage reached the configured limit, indicating the container hit...">isMemoryAtLimit()</a> is then used as a final fallback).</p>
+<p>Note: memory.failcnt counts allocation failures, NOT OOM kills. With swap available the kernel may swap rather than kill, and the counter resets to 0 on cgroup recreation, making it unreliable.</p>
+<p>cgroups v2: reads the 'oom_kill' field from /sys/fs/cgroup/&lt;id&gt;/memory.events — a monotonic count of OOM kills. Falls back to the system.slice scope path if the direct path is absent.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[out]</td><td class="paramname">val</td><td>gives the number of times that the cgroup limit was exceeded.</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">val</td><td>Set to the oom_kill counter (v1 kernel &gt;= 4.13 or v2), or the under_oom flag (v1 kernel &lt; 4.13) on success.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>true on successfully reading from the file. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>true on successfully reading and parsing the value. </dd></dl>
 
 </div>
 </div>

@@ -114,6 +114,9 @@ Static Private Member Functions</h2></td></tr>
 <tr class="memitem:aaa87b7434820b6a4e78b0f48f4ae78fe" id="r_aaa87b7434820b6a4e78b0f48f4ae78fe"><td class="memItemLeft" align="right" valign="top">static Json::Value&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDobbyStats.html#aaa87b7434820b6a4e78b0f48f4ae78fe">readSingleCgroupValue</a> (const <a class="el" href="classContainerId.html">ContainerId</a> &amp;id, const std::string &amp;cgroupMntPath, const std::string &amp;cgroupfileName)</td></tr>
 <tr class="memdesc:aaa87b7434820b6a4e78b0f48f4ae78fe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a single value from the given cgroup file.  <br /></td></tr>
 <tr class="separator:aaa87b7434820b6a4e78b0f48f4ae78fe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaf856a46ede88fb07abbfaccb889022d" id="r_aaf856a46ede88fb07abbfaccb889022d"><td class="memItemLeft" align="right" valign="top">static Json::Value&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDobbyStats.html#aaf856a46ede88fb07abbfaccb889022d">readCgroupKeyValue</a> (const <a class="el" href="classContainerId.html">ContainerId</a> &amp;id, const std::string &amp;cgroupMntPath, const std::string &amp;cgroupfileName, const std::string &amp;key)</td></tr>
+<tr class="memdesc:aaf856a46ede88fb07abbfaccb889022d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a named value from a key-value format cgroup file.  <br /></td></tr>
+<tr class="separator:aaf856a46ede88fb07abbfaccb889022d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aceeb974aa880b660d614eb220eb462d4" id="r_aceeb974aa880b660d614eb220eb462d4"><td class="memItemLeft" align="right" valign="top">static std::vector&lt; int64_t &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDobbyStats.html#aceeb974aa880b660d614eb220eb462d4">readMultipleCgroupValues</a> (const <a class="el" href="classContainerId.html">ContainerId</a> &amp;id, const std::string &amp;cgroupMntPath, const std::string &amp;cgroupfileName)</td></tr>
 <tr class="memdesc:aceeb974aa880b660d614eb220eb462d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads multiple values from the given cgroup file.  <br /></td></tr>
 <tr class="separator:aceeb974aa880b660d614eb220eb462d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -387,6 +390,67 @@ const Json::Value&#160;</td><td class="memItemRight" valign="bottom"><b>mStats</
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The number of characters copied, or </dd></dl>
+
+</div>
+</div>
+<a id="aaf856a46ede88fb07abbfaccb889022d" name="aaf856a46ede88fb07abbfaccb889022d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaf856a46ede88fb07abbfaccb889022d">&#9670;&#160;</a></span>readCgroupKeyValue()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">Json::Value DobbyStats::readCgroupKeyValue </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classContainerId.html">ContainerId</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>cgroupMntPath</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>cgroupfileName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>key</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Reads a named value from a key-value format cgroup file. </p>
+<p>Cgroups v2 files like cpu.stat use a key-value format with one pair per line, e.g.: usage_usec 123456 user_usec 100000 system_usec 23456</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">id</td><td>The string id of the container. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">cgroupMntPath</td><td>The path to the cgroup mount point. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">cgroupfileName</td><td>The name of the cgroup file. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>The key whose value to extract.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The value as a json integer, or null if not found. </dd></dl>
 
 </div>
 </div>

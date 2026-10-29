@@ -251,7 +251,7 @@ Additional Inherited Members</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Attempts to get the mount points of the ION cgroup filesystem. </p>
-<p>This scans the mount table looking for the cgroups mounts. This is typically the name of the cgroup prefixed with "/sys/fs/cgroup"</p>
+<p>This scans the mount table looking for the cgroups mounts. On cgroups v1 this is typically the name of the cgroup prefixed with "/sys/fs/cgroup". On cgroups v2 the ION custom controller is not available (returns empty).</p>
 <dl class="section return"><dt>Returns</dt><dd>path to the ION cgroup mount, or empty string if failed to find it. </dd></dl>
 
 </div>

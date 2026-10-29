@@ -262,17 +262,17 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>        {</div>
 <div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>            <span class="comment">// We are unregistering an observer so make sure we will not notify unregistered observers</span></div>
 <div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>            lock.unlock();</div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>            dispatcher-&gt;sync();</div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>            lock.lock();</div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>        }</div>
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span> </div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>        notifyingObservers = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span> </div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>        <span class="keywordflow">if</span> (waiteeCount &gt; 0)</div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>        {</div>
-<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>            cv.notify_all();</div>
-<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>        }</div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>        lock.unlock();</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>            <span class="comment">/* coverity[missing_lock : FALSE] */</span></div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>            dispatcher-&gt;sync();</div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>            lock.lock();</div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>        }</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span> </div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>        notifyingObservers = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span> </div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>        <span class="keywordflow">if</span> (waiteeCount &gt; 0)</div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>        {</div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>            cv.notify_all();</div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>        }</div>
 <div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>    }</div>
 <div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span> </div>
 <div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span><span class="keyword">protected</span>:</div>

@@ -15,10 +15,12 @@ var searchData=
   ['flush_12',['flush',['../classAICommon_1_1ThreadedDispatcher.html#aa5fdf60cbe99190d5dc3a860551f8340',1,'AICommon::ThreadedDispatcher::flush()'],['../classAI__IPC_1_1IIpcService.html#a498461ed015c331ea10ec1bb68724aa6',1,'AI_IPC::IIpcService::flush()'],['../classIpcService.html#a1011b5f0b5589bec049044acc60871c7',1,'IpcService::flush()'],['../classSDBusIpcService.html#a8bab6db74aa9d66f53d97d0c31e2c76b',1,'SDBusIpcService::flush()']]],
   ['flushconnection_13',['flushConnection',['../classAI__IPC_1_1DbusConnection.html#afccd07bbee82e1b7d9c9741bbc395fad',1,'AI_IPC::DbusConnection']]],
   ['foo_14',['Foo',['../classFoo.html',1,'']]],
-  ['forcereadycheck_15',['forceReadyCheck',['../classServiceMonitor.html#ae64d9ecb85b74e520ea4fbb9c7265bbb',1,'ServiceMonitor']]],
-  ['forkexec_16',['forkExec',['../classNetfilter.html#a483c8c45f60f09106929b545ce3f2d25',1,'Netfilter']]],
-  ['forkexecrunc_17',['forkExecRunC',['../classDobbyRunC.html#a9966d759b5b584c895001c1e9714df2e',1,'DobbyRunC']]],
-  ['formatextimagefile_18',['formatextimagefile',['../classDobbyUtils.html#a7ecc2d141a16040faca39c3150b58f70',1,'DobbyUtils::formatExtImageFile()'],['../classIDobbyUtils__v1.html#a08d2db01336e05b5b95225557f54c71c',1,'IDobbyUtils_v1::formatExtImageFile()'],['../classIDobbyUtils__v2.html#a0b4e58dcb654d379efe7ab412f808bf9',1,'IDobbyUtils_v2::formatExtImageFile()'],['../classIDobbyUtils__v3.html#a0b4e58dcb654d379efe7ab412f808bf9',1,'IDobbyUtils_v3::formatExtImageFile()']]],
-  ['freedescriptor_19',['freeDescriptor',['../classDobbyContainer.html#a53f577b0114b5a68dc094727d1d46c4d',1,'DobbyContainer']]],
-  ['fromjsonfile_20',['fromJsonFile',['../classSettings.html#a4221bfb1973b31578e0511d0499c6d08',1,'Settings']]]
+  ['forcekillcontainerandverify_15',['forceKillContainerAndVerify',['../classDobbyManager.html#af25f5c9e4927bae65af486697ff555ee',1,'DobbyManager']]],
+  ['forcereadycheck_16',['forceReadyCheck',['../classServiceMonitor.html#ae64d9ecb85b74e520ea4fbb9c7265bbb',1,'ServiceMonitor']]],
+  ['forkexec_17',['forkExec',['../classNetfilter.html#a483c8c45f60f09106929b545ce3f2d25',1,'Netfilter']]],
+  ['forkexecrunc_18',['forkExecRunC',['../classDobbyRunC.html#a9966d759b5b584c895001c1e9714df2e',1,'DobbyRunC']]],
+  ['format_19',['Dobby Spec Format',['../index.html#autotoc_md12',1,'']]],
+  ['formatextimagefile_20',['formatextimagefile',['../classDobbyUtils.html#a7ecc2d141a16040faca39c3150b58f70',1,'DobbyUtils::formatExtImageFile()'],['../classIDobbyUtils__v1.html#a08d2db01336e05b5b95225557f54c71c',1,'IDobbyUtils_v1::formatExtImageFile()'],['../classIDobbyUtils__v2.html#a0b4e58dcb654d379efe7ab412f808bf9',1,'IDobbyUtils_v2::formatExtImageFile()'],['../classIDobbyUtils__v3.html#a0b4e58dcb654d379efe7ab412f808bf9',1,'IDobbyUtils_v3::formatExtImageFile()']]],
+  ['freedescriptor_21',['freeDescriptor',['../classDobbyContainer.html#a53f577b0114b5a68dc094727d1d46c4d',1,'DobbyContainer']]],
+  ['fromjsonfile_22',['fromJsonFile',['../classSettings.html#a4221bfb1973b31578e0511d0499c6d08',1,'Settings']]]
 ];

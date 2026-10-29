@@ -114,6 +114,9 @@ Public Types</h2></td></tr>
 <tr class="memitem:a2b9e6af29cf85f86acc7e74d7972ec34" id="r_a2b9e6af29cf85f86acc7e74d7972ec34"><td class="memItemLeft" align="right" valign="top"><a id="a2b9e6af29cf85f86acc7e74d7972ec34" name="a2b9e6af29cf85f86acc7e74d7972ec34"></a>
 typedef std::function&lt; void(int32_t, const std::string &amp;, IDobbyProxyEvents::ContainerState, const void *)&gt;&#160;</td><td class="memItemRight" valign="bottom"><b>StateChangeListener</b></td></tr>
 <tr class="separator:a2b9e6af29cf85f86acc7e74d7972ec34"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9b60670681b413da52f3c09f0904d985" id="r_a9b60670681b413da52f3c09f0904d985"><td class="memItemLeft" align="right" valign="top"><a id="a9b60670681b413da52f3c09f0904d985" name="a9b60670681b413da52f3c09f0904d985"></a>
+typedef std::function&lt; void(int32_t, const std::string &amp;, IDobbyProxyEvents::ContainerState, int32_t, const void *)&gt;&#160;</td><td class="memItemRight" valign="bottom"><b>StateChangeWithStatusListener</b></td></tr>
+<tr class="separator:a9b60670681b413da52f3c09f0904d985"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -178,6 +181,12 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>stopContainer</b> (in
 <tr class="separator:aaa15b7d85b93792fb6407a0bbe3efd1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a63449719a79310c7e83b96268c2d1288" id="r_a63449719a79310c7e83b96268c2d1288"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIDobbyProxy.html#a63449719a79310c7e83b96268c2d1288">unregisterListener</a> (int tag)=0</td></tr>
 <tr class="separator:a63449719a79310c7e83b96268c2d1288"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa59760260d8715594341210a1981a127" id="r_aa59760260d8715594341210a1981a127"><td class="memItemLeft" align="right" valign="top"><a id="aa59760260d8715594341210a1981a127" name="aa59760260d8715594341210a1981a127"></a>
+virtual int&#160;</td><td class="memItemRight" valign="bottom"><b>registerListenerWithStatus</b> (const StateChangeWithStatusListener &amp;listener, const void *cbParams)=0</td></tr>
+<tr class="separator:aa59760260d8715594341210a1981a127"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a37c958a82b1ad8e362334c1ef74fc0cd" id="r_a37c958a82b1ad8e362334c1ef74fc0cd"><td class="memItemLeft" align="right" valign="top"><a id="a37c958a82b1ad8e362334c1ef74fc0cd" name="a37c958a82b1ad8e362334c1ef74fc0cd"></a>
+virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>unregisterListenerWithStatus</b> (int tag)=0</td></tr>
+<tr class="separator:a37c958a82b1ad8e362334c1ef74fc0cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5772c2a98b7905768df40a39e3df4285" id="r_a5772c2a98b7905768df40a39e3df4285"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIDobbyProxy.html#a5772c2a98b7905768df40a39e3df4285">createBundle</a> (const std::string &amp;id, const std::string &amp;jsonSpec) const =0</td></tr>
 <tr class="separator:a5772c2a98b7905768df40a39e3df4285"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a215db0a96d40ba89438fe070fcaba5d7" id="r_a215db0a96d40ba89438fe070fcaba5d7"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIDobbyProxy.html#a215db0a96d40ba89438fe070fcaba5d7">getSpec</a> (int32_t descriptor) const =0</td></tr>
@@ -1127,7 +1136,7 @@ std::shared_ptr&lt; <a class="el" href="classAICommon_1_1IDispatcher.html">IDisp
 </table>
 </div><div class="memdoc">
 
-<p>Implemented in <a class="el" href="classDobbyProxy.html#a04ef305552bbaf59ecfd4b93a9f1d0bb">DobbyProxy</a>.</p>
+<p>Implemented in <a class="el" href="classDobbyProxy.html#aa54edb2cc658ae857b6c39e7d6b76119">DobbyProxy</a>.</p>
 
 </div>
 </div>

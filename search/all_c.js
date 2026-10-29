@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['license_0',['Copyright and license',['../index.html#autotoc_md15',1,'']]],
+  ['license_0',['Copyright and license',['../index.html#autotoc_md18',1,'']]],
   ['list_1',['list',['../deprecated.html',1,'Deprecated List'],['../classDobbyRunC.html#a386478adb4467dc95c108e9e1c155f00',1,'DobbyRunC::list()']]],
   ['listcontainers_2',['listcontainers',['../classDobbyProxy.html#a7452c38ae573c622054284d366cb6bbe',1,'DobbyProxy::listContainers()'],['../classDobbyManager.html#a916432f3341a3eeae5de5e06807374e3',1,'DobbyManager::listContainers()']]],
   ['listloadedloggers_3',['listLoadedLoggers',['../classDobbyRdkPluginManager.html#afd63f403f8bbe6bf7935dd3e22b6283d',1,'DobbyRdkPluginManager']]],

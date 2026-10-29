@@ -121,15 +121,21 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a7d59f697f700d25c7790d11d77f6b3f9" id="r_a7d59f697f700d25c7790d11d77f6b3f9"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDobbyEnv.html#a7d59f697f700d25c7790d11d77f6b3f9">cgroupMountPath</a> (Cgroup cgroup) const override</td></tr>
 <tr class="memdesc:a7d59f697f700d25c7790d11d77f6b3f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the absolute path to the cgroup mount point for the given cgroup.  <br /></td></tr>
 <tr class="separator:a7d59f697f700d25c7790d11d77f6b3f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a207e67cbb704bf794dccdbc146a97aad" id="r_a207e67cbb704bf794dccdbc146a97aad"><td class="memItemLeft" align="right" valign="top">CgroupVersion&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDobbyEnv.html#a207e67cbb704bf794dccdbc146a97aad">cgroupVersion</a> () const override</td></tr>
+<tr class="memdesc:a207e67cbb704bf794dccdbc146a97aad"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the detected cgroup version (V1 or V2)  <br /></td></tr>
+<tr class="separator:a207e67cbb704bf794dccdbc146a97aad"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab1d6b875d7bb3d1084754f5d03394b29" id="r_ab1d6b875d7bb3d1084754f5d03394b29"><td class="memItemLeft" align="right" valign="top">uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDobbyEnv.html#ab1d6b875d7bb3d1084754f5d03394b29">platformIdent</a> () const override</td></tr>
 <tr class="memdesc:ab1d6b875d7bb3d1084754f5d03394b29"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the two byte platform identification number.  <br /></td></tr>
 <tr class="separator:ab1d6b875d7bb3d1084754f5d03394b29"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pri-static-methods" name="pri-static-methods"></a>
 Static Private Member Functions</h2></td></tr>
-<tr class="memitem:ac6b9d0f564c408491f2ae2f326e7fd46" id="r_ac6b9d0f564c408491f2ae2f326e7fd46"><td class="memItemLeft" align="right" valign="top">static std::map&lt; IDobbyEnv::Cgroup, std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDobbyEnv.html#ac6b9d0f564c408491f2ae2f326e7fd46">getCgroupMountPoints</a> ()</td></tr>
-<tr class="memdesc:ac6b9d0f564c408491f2ae2f326e7fd46"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attempts to get the mount points of the cgroup filesystems.  <br /></td></tr>
-<tr class="separator:ac6b9d0f564c408491f2ae2f326e7fd46"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:addc9ed48a0173e20db52eff555e0345d" id="r_addc9ed48a0173e20db52eff555e0345d"><td class="memItemLeft" align="right" valign="top">static CgroupVersion&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDobbyEnv.html#addc9ed48a0173e20db52eff555e0345d">detectCgroupVersion</a> ()</td></tr>
+<tr class="memdesc:addc9ed48a0173e20db52eff555e0345d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detects whether the system uses cgroups v1 or v2.  <br /></td></tr>
+<tr class="separator:addc9ed48a0173e20db52eff555e0345d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeb92851cefad7f1cea4011457d408556" id="r_aeb92851cefad7f1cea4011457d408556"><td class="memItemLeft" align="right" valign="top">static std::map&lt; IDobbyEnv::Cgroup, std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDobbyEnv.html#aeb92851cefad7f1cea4011457d408556">getCgroupMountPoints</a> (CgroupVersion version)</td></tr>
+<tr class="memdesc:aeb92851cefad7f1cea4011457d408556"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attempts to get the mount points of the cgroup filesystems.  <br /></td></tr>
+<tr class="separator:aeb92851cefad7f1cea4011457d408556"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2ca51ad6c47f1a4794dee966668be229" id="r_a2ca51ad6c47f1a4794dee966668be229"><td class="memItemLeft" align="right" valign="top">static uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDobbyEnv.html#a2ca51ad6c47f1a4794dee966668be229">getPlatformIdent</a> ()</td></tr>
 <tr class="memdesc:a2ca51ad6c47f1a4794dee966668be229"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attempts to get the STB platform identifier bytes.  <br /></td></tr>
 <tr class="separator:a2ca51ad6c47f1a4794dee966668be229"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -145,6 +151,9 @@ const std::string&#160;</td><td class="memItemRight" valign="bottom"><b>mFlashMo
 <tr class="memitem:aea7bebf64318a32a0e2e5560e29301e6" id="r_aea7bebf64318a32a0e2e5560e29301e6"><td class="memItemLeft" align="right" valign="top"><a id="aea7bebf64318a32a0e2e5560e29301e6" name="aea7bebf64318a32a0e2e5560e29301e6"></a>
 const std::string&#160;</td><td class="memItemRight" valign="bottom"><b>mPluginsWorkspacePath</b></td></tr>
 <tr class="separator:aea7bebf64318a32a0e2e5560e29301e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad1557e122b012641e82bd535c506fec7" id="r_ad1557e122b012641e82bd535c506fec7"><td class="memItemLeft" align="right" valign="top"><a id="ad1557e122b012641e82bd535c506fec7" name="ad1557e122b012641e82bd535c506fec7"></a>
+const CgroupVersion&#160;</td><td class="memItemRight" valign="bottom"><b>mCgroupVersion</b></td></tr>
+<tr class="separator:ad1557e122b012641e82bd535c506fec7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9f8396350dfbeb4a6b5c3d7654777563" id="r_a9f8396350dfbeb4a6b5c3d7654777563"><td class="memItemLeft" align="right" valign="top"><a id="a9f8396350dfbeb4a6b5c3d7654777563" name="a9f8396350dfbeb4a6b5c3d7654777563"></a>
 const std::map&lt; IDobbyEnv::Cgroup, std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>mCgroupMountPaths</b></td></tr>
 <tr class="separator:a9f8396350dfbeb4a6b5c3d7654777563"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -171,6 +180,10 @@ Additional Inherited Members</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="separator:a5ee49cc1fb04cd8f730aa10946690c3d inherit pub_types_classIDobbyEnv"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab3cbc6e4d25495afe790b6d20caf1b73 inherit pub_types_classIDobbyEnv" id="r_ab3cbc6e4d25495afe790b6d20caf1b73"><td class="memItemLeft" align="right" valign="top"><a id="ab3cbc6e4d25495afe790b6d20caf1b73" name="ab3cbc6e4d25495afe790b6d20caf1b73"></a>enum class &#160;</td><td class="memItemRight" valign="bottom"><b>CgroupVersion</b> { <b>V1</b>
+, <b>V2</b>
+ }</td></tr>
+<tr class="separator:ab3cbc6e4d25495afe790b6d20caf1b73 inherit pub_types_classIDobbyEnv"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Basic class used to store the stb environment. </p>
@@ -202,9 +215,68 @@ Additional Inherited Members</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Returns the absolute path to the cgroup mount point for the given cgroup. </p>
-<p>This is typically "/sys/fs/cgroup/&lt;cgroup&gt;" </p>
+<p>On cgroups v1 this is typically "/sys/fs/cgroup/&lt;controller&gt;". On cgroups v2 (unified) this is the single unified mount, typically "/sys/fs/cgroup". </p>
 
 <p>Implements <a class="el" href="classIDobbyEnv.html#a1af7ebfbb60a41133de6514ad61bb008">IDobbyEnv</a>.</p>
+
+</div>
+</div>
+<a id="a207e67cbb704bf794dccdbc146a97aad" name="a207e67cbb704bf794dccdbc146a97aad"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a207e67cbb704bf794dccdbc146a97aad">&#9670;&#160;</a></span>cgroupVersion()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">IDobbyEnv::CgroupVersion DobbyEnv::cgroupVersion </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the detected cgroup version (V1 or V2) </p>
+<p>On cgroups v2 systems all controllers are under a single unified hierarchy. Plugins should use this to select the correct file names when reading/writing cgroup control files. </p>
+
+<p>Implements <a class="el" href="classIDobbyEnv.html#a285a5b742ac815100f3d7632577cccf0">IDobbyEnv</a>.</p>
+
+</div>
+</div>
+<a id="addc9ed48a0173e20db52eff555e0345d" name="addc9ed48a0173e20db52eff555e0345d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#addc9ed48a0173e20db52eff555e0345d">&#9670;&#160;</a></span>detectCgroupVersion()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">IDobbyEnv::CgroupVersion DobbyEnv::detectCgroupVersion </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">private</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Detects whether the system uses cgroups v1 or v2. </p>
+<p>Checks for the presence of /sys/fs/cgroup/cgroup.controllers which only exists on cgroup v2 (unified hierarchy) systems.</p>
+<dl class="section return"><dt>Returns</dt><dd>CgroupVersion::V2 if unified hierarchy is detected, otherwise V1. </dd></dl>
 
 </div>
 </div>
@@ -239,8 +311,8 @@ Additional Inherited Members</h2></td></tr>
 
 </div>
 </div>
-<a id="ac6b9d0f564c408491f2ae2f326e7fd46" name="ac6b9d0f564c408491f2ae2f326e7fd46"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac6b9d0f564c408491f2ae2f326e7fd46">&#9670;&#160;</a></span>getCgroupMountPoints()</h2>
+<a id="aeb92851cefad7f1cea4011457d408556" name="aeb92851cefad7f1cea4011457d408556"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aeb92851cefad7f1cea4011457d408556">&#9670;&#160;</a></span>getCgroupMountPoints()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -251,7 +323,8 @@ Additional Inherited Members</h2></td></tr>
         <tr>
           <td class="memname">std::map&lt; IDobbyEnv::Cgroup, std::string &gt; DobbyEnv::getCgroupMountPoints </td>
           <td>(</td>
-          <td class="paramname"></td><td>)</td>
+          <td class="paramtype">CgroupVersion&#160;</td>
+          <td class="paramname"><em>version</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -264,7 +337,13 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Attempts to get the mount points of the cgroup filesystems. </p>
 <p>This scans the mount table looking for the cgroups mounts, if this fails it's pretty fatal.</p>
-<p>This is typically the name of the cgroup prefixed with "/sys/fs/cgroup"</p>
+<p>On cgroups v1 this is typically the name of the cgroup prefixed with "/sys/fs/cgroup". On cgroups v2 all controllers are under a single unified mount (typically "/sys/fs/cgroup").</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">version</td><td>The detected cgroup version.</td></tr>
+  </table>
+  </dd>
+</dl>
 <dl class="section return"><dt>Returns</dt><dd>a map of cgroup type to path </dd></dl>
 
 </div>

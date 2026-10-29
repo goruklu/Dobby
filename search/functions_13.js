@@ -82,5 +82,6 @@ var searchData=
   ['storecontainervethpeermac_79',['storeContainerVethPeerMac',['../classNetworkingHelper.html#ae037427f292b73de71953f12d643ff5f',1,'NetworkingHelper']]],
   ['storemountpoint_80',['storeMountPoint',['../classDobbySpecConfig.html#a7dafccd016e3c756554d50387119d37f',1,'DobbySpecConfig']]],
   ['stringtoipaddress_81',['stringToIpAddress',['../classIPAllocator.html#a78a029b7a0df7a909c8dcf09499a634f',1,'IPAllocator']]],
-  ['sync_82',['sync',['../classDobbyProxyNotifyDispatcher.html#a3ded112e14e80e3ed8c21ff940596408',1,'DobbyProxyNotifyDispatcher::sync()'],['../classAICommon_1_1IDispatcher.html#a7e2c831333f742bde55ba5d83223ea7d',1,'AICommon::IDispatcher::sync()'],['../classAICommon_1_1ThreadedDispatcher.html#a8f8a05defb37bacf6879bb97fadcdb1a',1,'AICommon::ThreadedDispatcher::sync()']]]
+  ['sync_82',['sync',['../classDobbyProxyNotifyDispatcher.html#a3ded112e14e80e3ed8c21ff940596408',1,'DobbyProxyNotifyDispatcher::sync()'],['../classAICommon_1_1IDispatcher.html#a7e2c831333f742bde55ba5d83223ea7d',1,'AICommon::IDispatcher::sync()'],['../classAICommon_1_1ThreadedDispatcher.html#a8f8a05defb37bacf6879bb97fadcdb1a',1,'AICommon::ThreadedDispatcher::sync()']]],
+  ['synthesizecontainersignalstatus_83',['synthesizeContainerSignalStatus',['../classDobbyManager.html#a62f5530d80b7dfa59fc62ba3ed69b3d0',1,'DobbyManager']]]
 ];

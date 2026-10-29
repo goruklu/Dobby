@@ -274,6 +274,9 @@ Private Member Functions</h2></td></tr>
 <tr class="memitem:a50a0c920064613a76beda9eb8853cc9e" id="r_a50a0c920064613a76beda9eb8853cc9e"><td class="memItemLeft" align="right" valign="top"><a id="a50a0c920064613a76beda9eb8853cc9e" name="a50a0c920064613a76beda9eb8853cc9e"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>JSON_FIELD_PROCESSOR</b> (processMemLimit)</td></tr>
 <tr class="separator:a50a0c920064613a76beda9eb8853cc9e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a592a4a405457e180316baf74a8dd2e70" id="r_a592a4a405457e180316baf74a8dd2e70"><td class="memItemLeft" align="right" valign="top"><a id="a592a4a405457e180316baf74a8dd2e70" name="a592a4a405457e180316baf74a8dd2e70"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>JSON_FIELD_PROCESSOR</b> (processSwapLimit)</td></tr>
+<tr class="separator:a592a4a405457e180316baf74a8dd2e70"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac474720ca399060ce82b94060d29b38b" id="r_ac474720ca399060ce82b94060d29b38b"><td class="memItemLeft" align="right" valign="top"><a id="ac474720ca399060ce82b94060d29b38b" name="ac474720ca399060ce82b94060d29b38b"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>JSON_FIELD_PROCESSOR</b> (processGpu)</td></tr>
 <tr class="separator:ac474720ca399060ce82b94060d29b38b"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -326,6 +329,9 @@ Static Private Member Functions</h2></td></tr>
 <tr class="memitem:abeba57edace83c582cd741874ebc36ab" id="r_abeba57edace83c582cd741874ebc36ab"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDobbySpecConfig.html#abeba57edace83c582cd741874ebc36ab">addGpuDevNodes</a> (const std::shared_ptr&lt; const <a class="el" href="structIDobbySettings_1_1HardwareAccessSettings.html">IDobbySettings::HardwareAccessSettings</a> &gt; &amp;settings, ctemplate::TemplateDictionary *dict)</td></tr>
 <tr class="memdesc:abeba57edace83c582cd741874ebc36ab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds the GPU device nodes (if any) to supplied dictionary.  <br /></td></tr>
 <tr class="separator:abeba57edace83c582cd741874ebc36ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6ddc727305baf267ed871812fba7ac8a" id="r_a6ddc727305baf267ed871812fba7ac8a"><td class="memItemLeft" align="right" valign="top"><a id="a6ddc727305baf267ed871812fba7ac8a" name="a6ddc727305baf267ed871812fba7ac8a"></a>
+static int64_t&#160;</td><td class="memItemRight" valign="bottom"><b>calculatePhysicalMemoryLimit</b> (int64_t memLimit, double swapToRamRatio)</td></tr>
+<tr class="separator:a6ddc727305baf267ed871812fba7ac8a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aae0737229af801f6d945945ac447d469" id="r_aae0737229af801f6d945945ac447d469"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classDobbySpecConfig.html#aae0737229af801f6d945945ac447d469">addVpuDevNodes</a> (const std::shared_ptr&lt; const <a class="el" href="structIDobbySettings_1_1HardwareAccessSettings.html">IDobbySettings::HardwareAccessSettings</a> &gt; &amp;settings, ctemplate::TemplateDictionary *dict)</td></tr>
 <tr class="memdesc:aae0737229af801f6d945945ac447d469"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds the VPU device nodes (if any) to supplied dictionary.  <br /></td></tr>
 <tr class="separator:aae0737229af801f6d945945ac447d469"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -353,6 +359,9 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>mValid</b></td></tr>
 <tr class="memitem:a8b9b4563e5de6695c9e796e27136ba68" id="r_a8b9b4563e5de6695c9e796e27136ba68"><td class="memItemLeft" align="right" valign="top"><a id="a8b9b4563e5de6695c9e796e27136ba68" name="a8b9b4563e5de6695c9e796e27136ba68"></a>
 ctemplate::TemplateDictionary *&#160;</td><td class="memItemRight" valign="bottom"><b>mDictionary</b></td></tr>
 <tr class="separator:a8b9b4563e5de6695c9e796e27136ba68"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab056307724dafbfbfc1080895da76426" id="r_ab056307724dafbfbfc1080895da76426"><td class="memItemLeft" align="right" valign="top"><a id="ab056307724dafbfbfc1080895da76426" name="ab056307724dafbfbfc1080895da76426"></a>
+double&#160;</td><td class="memItemRight" valign="bottom"><b>mZramSwapToRamRatio</b></td></tr>
+<tr class="separator:ab056307724dafbfbfc1080895da76426"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aac4e9babd6c12e298d10aed1c6ec9ffd" id="r_aac4e9babd6c12e298d10aed1c6ec9ffd"><td class="memItemLeft" align="right" valign="top"><a id="aac4e9babd6c12e298d10aed1c6ec9ffd" name="aac4e9babd6c12e298d10aed1c6ec9ffd"></a>
 Json::Value&#160;</td><td class="memItemRight" valign="bottom"><b>mSpec</b></td></tr>
 <tr class="separator:aac4e9babd6c12e298d10aed1c6ec9ffd"><td class="memSeparator" colspan="2">&#160;</td></tr>

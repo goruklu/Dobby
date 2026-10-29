@@ -279,8 +279,8 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Attempts to get the mount point of the gpu cgroup filesystem. </p>
 <p>This scans the mount table looking for the cgroups mount, if this fails it's pretty fatal.</p>
-<p>This is typically "/sys/fs/cgroup/gpu".</p>
-<dl class="section return"><dt>Returns</dt><dd>a string to the gpu cgroup path. </dd></dl>
+<p>On cgroups v1 this is typically "/sys/fs/cgroup/gpu". On cgroups v2 the gpu custom controller is not available (returns empty).</p>
+<dl class="section return"><dt>Returns</dt><dd>a string to the gpu cgroup path, or empty if not found. </dd></dl>
 
 </div>
 </div>

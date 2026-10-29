@@ -111,6 +111,10 @@ Public Types</h2></td></tr>
 <br />
  }</td></tr>
 <tr class="separator:a5ee49cc1fb04cd8f730aa10946690c3d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab3cbc6e4d25495afe790b6d20caf1b73" id="r_ab3cbc6e4d25495afe790b6d20caf1b73"><td class="memItemLeft" align="right" valign="top"><a id="ab3cbc6e4d25495afe790b6d20caf1b73" name="ab3cbc6e4d25495afe790b6d20caf1b73"></a>enum class &#160;</td><td class="memItemRight" valign="bottom"><b>CgroupVersion</b> { <b>V1</b>
+, <b>V2</b>
+ }</td></tr>
+<tr class="separator:ab3cbc6e4d25495afe790b6d20caf1b73"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -129,6 +133,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a1af7ebfbb60a41133de6514ad61bb008" id="r_a1af7ebfbb60a41133de6514ad61bb008"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIDobbyEnv.html#a1af7ebfbb60a41133de6514ad61bb008">cgroupMountPath</a> (Cgroup cgroup) const =0</td></tr>
 <tr class="memdesc:a1af7ebfbb60a41133de6514ad61bb008"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the absolute path to the cgroup mount point for the given cgroup.  <br /></td></tr>
 <tr class="separator:a1af7ebfbb60a41133de6514ad61bb008"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a285a5b742ac815100f3d7632577cccf0" id="r_a285a5b742ac815100f3d7632577cccf0"><td class="memItemLeft" align="right" valign="top">virtual CgroupVersion&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classIDobbyEnv.html#a285a5b742ac815100f3d7632577cccf0">cgroupVersion</a> () const =0</td></tr>
+<tr class="memdesc:a285a5b742ac815100f3d7632577cccf0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the detected cgroup version (V1 or V2)  <br /></td></tr>
+<tr class="separator:a285a5b742ac815100f3d7632577cccf0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p><a class="el" href="structInterface.html">Interface</a> that exports the environment of the daemon to plugins. </p>
@@ -160,9 +167,39 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Returns the absolute path to the cgroup mount point for the given cgroup. </p>
-<p>This is typically "/sys/fs/cgroup/&lt;cgroup&gt;" </p>
+<p>On cgroups v1 this is typically "/sys/fs/cgroup/&lt;controller&gt;". On cgroups v2 (unified) this is the single unified mount, typically "/sys/fs/cgroup". </p>
 
 <p>Implemented in <a class="el" href="classDobbyEnv.html#a7d59f697f700d25c7790d11d77f6b3f9">DobbyEnv</a>.</p>
+
+</div>
+</div>
+<a id="a285a5b742ac815100f3d7632577cccf0" name="a285a5b742ac815100f3d7632577cccf0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a285a5b742ac815100f3d7632577cccf0">&#9670;&#160;</a></span>cgroupVersion()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual CgroupVersion IDobbyEnv::cgroupVersion </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the detected cgroup version (V1 or V2) </p>
+<p>On cgroups v2 systems all controllers are under a single unified hierarchy. Plugins should use this to select the correct file names when reading/writing cgroup control files. </p>
+
+<p>Implemented in <a class="el" href="classDobbyEnv.html#a207e67cbb704bf794dccdbc146a97aad">DobbyEnv</a>.</p>
 
 </div>
 </div>

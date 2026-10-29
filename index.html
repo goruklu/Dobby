@@ -128,7 +128,7 @@ CMake Configuration Settings</h3>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyLeft"><code>-DENABLE_LTO</code>   </td><td class="markdownTableBodyLeft">ON/OFF   </td><td class="markdownTableBodyLeft">Enable Link Time Optimisation (<a href="https://gcc.gnu.org/onlinedocs/gccint/LTO-Overview.html">https://gcc.gnu.org/onlinedocs/gccint/LTO-Overview.html</a>). Requires GCC &gt;4,5 although versions &gt;6 are strongly recommended. Defaults to <code>OFF</code>    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyLeft"><code>-DENABLE_PERFETTO_TRACING</code>   </td><td class="markdownTableBodyLeft">ON/OFF   </td><td class="markdownTableBodyLeft">Option to enable or disable Perfetto tracing. Can not be enabled for release builds. Requires Perfetto SDK to be installed, and Legacy Components enabled    </td></tr>
+<td class="markdownTableBodyLeft"><code>-DENABLE_PERFETTO_TRACING</code>   </td><td class="markdownTableBodyLeft">ON/OFF   </td><td class="markdownTableBodyLeft">Option to enable or disable Perfetto tracing. Cannot be enabled for release builds. Requires Perfetto SDK to be installed.    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyLeft"><code>-DDOBBY_SERVICE</code>   </td><td class="markdownTableBodyLeft">Reverse domain name string   </td><td class="markdownTableBodyLeft">Specify the <a class="el" href="classDobby.html" title="The root Dobby object, runs the dbus loop.">Dobby</a> dbus service name. Defaults to <code>org.rdk.dobby</code> if none specified.    </td></tr>
 <tr class="markdownTableRowOdd">
@@ -160,9 +160,25 @@ Documentation</h1>
 <li>Code documentation can be generated with Doxygen by running <code>doxygen ./Doxyfile</code></li>
 <li>Doxygen documentation is hosted here: <a href="https://rdkcentral.github.io/Dobby/">https://rdkcentral.github.io/Dobby/</a></li>
 </ul>
-<h1><a class="anchor" id="autotoc_md8"></a>
+<h3><a class="anchor" id="autotoc_md8"></a>
+Subsystem Documentation</h3>
+<p>The repository also includes modular, self-contained guides for the native subsystems:</p>
+<ul>
+<li>Subsystem documentation index</li>
+<li>Daemon</li>
+<li>Bundle and OCI configuration</li>
+<li>IPC and D-Bus</li>
+<li>Client</li>
+<li>RDK plugin launcher</li>
+<li>RDK plugins</li>
+<li>AppInfrastructure</li>
+<li>Settings, utilities, tracing, and protocol</li>
+<li>Legacy plugins</li>
+<li>IPC utilities, runtime schema, and test infrastructure</li>
+</ul>
+<h1><a class="anchor" id="autotoc_md9"></a>
 Usage</h1>
-<h2><a class="anchor" id="autotoc_md9"></a>
+<h2><a class="anchor" id="autotoc_md10"></a>
 DobbyDaemon</h2>
 <p>This is the main component of <a class="el" href="classDobby.html" title="The root Dobby object, runs the dbus loop.">Dobby</a>. This daemon is responsible for managing, controlling and creating containers. The daemon runs in the background and communicates over dbus. It connects on a few dbus addresses - one for admin, one for debugging and the other for <a class="el" href="classDobby.html" title="The root Dobby object, runs the dbus loop.">Dobby</a> commands.</p>
 <p>DobbyDaemon can be started as a systemd service at system boot (the systemd service file can be found at <code>daemon/process/dobby.service</code>) or run manually on the command line by running:</p>
@@ -188,7 +204,7 @@ DobbyDaemon</h2>
 <div class="line">  AI_WORKSPACE_PATH=&lt;PATH&gt;      The path to tmpfs dir to use as workspace</div>
 <div class="line">  AI_PERSISTENT_PATH=&lt;PATH&gt;     The path to dir that is persistent across boots</div>
 <div class="line">  AI_PLATFORM_IDENT=&lt;IDENT&gt;     The 4 characters than make up the STB platform id</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md10"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md11"></a>
 DobbyBundleGenerator</h2>
 <p>This is a command-line wrapper around the <code>DobbyBundleGen</code> library, and allows <a class="el" href="classDobby.html" title="The root Dobby object, runs the dbus loop.">Dobby</a> spec JSON files to be converted to extended OCI bundles (aka Bundle*'s) with RDK plugin sections. It does not require the DobbyDaemon to be running, so can be run on or off-box.</p>
 <div class="fragment"><div class="line">Usage: DobbyBundleGenerator &lt;option(s)&gt;</div>
@@ -200,7 +216,71 @@ DobbyBundleGenerator</h2>
 <div class="line">  -s, --settings=PATH           Path to Dobby Settings file for STB</div>
 <div class="line">  -i, --inputpath=PATH          Path to Dobby JSON Spec for container</div>
 <div class="line">  -o, --outputDirectory=PATH    Where to save the generated OCI bundle</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md11"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md12"></a>
+Dobby Spec Format</h2>
+<p>When using <code>DobbyDaemon</code> or <code>DobbyBundleGenerator</code>, containers are described using a Dobby-specific JSON spec file. Example specs can be found in <code>tests/L2_testing/dobby_specs/</code>.</p>
+<p>The table below lists the supported top-level fields. Fields marked <b>mandatory</b> must always be present.</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Field   </th><th class="markdownTableHeadNone">Type   </th><th class="markdownTableHeadNone">Mandatory   </th><th class="markdownTableHeadNone">Description    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>version</code>   </td><td class="markdownTableBodyNone">string   </td><td class="markdownTableBodyNone">Yes   </td><td class="markdownTableBodyNone">Spec version. Currently <code>"1.0"</code> or <code>"1.1"</code>.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>args</code>   </td><td class="markdownTableBodyNone">array   </td><td class="markdownTableBodyNone">Yes   </td><td class="markdownTableBodyNone">Command and arguments to run inside the container.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>user</code>   </td><td class="markdownTableBodyNone">object   </td><td class="markdownTableBodyNone">Yes   </td><td class="markdownTableBodyNone"><code>uid</code> and <code>gid</code> the container process runs as.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>memLimit</code>   </td><td class="markdownTableBodyNone">integer   </td><td class="markdownTableBodyNone">Yes   </td><td class="markdownTableBodyNone">Requested memory limit in bytes. When <code>swapLimit</code> is present, this value is scaled down according to the host's RAM and active zram swap capacity before being applied to <code>memory.limit_in_bytes</code>. Other swap types, such as swapfiles and partitions, are ignored. Values below 256 KiB are accepted but will only generate a warning and may not be effective.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>swapLimit</code>   </td><td class="markdownTableBodyNone">integer   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Swap+memory limit in bytes (<code>memory.memsw.limit_in_bytes</code>). Must be ≥ the effective scaled memory limit. Defaults to unlimited (-1) when absent.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>env</code>   </td><td class="markdownTableBodyNone">array   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Environment variables in <code>"KEY=VALUE"</code> format.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>cwd</code>   </td><td class="markdownTableBodyNone">string   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Working directory inside the container.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>console</code>   </td><td class="markdownTableBodyNone">object   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Console log settings: <code>path</code> and <code>limit</code> (bytes).    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>etc</code>   </td><td class="markdownTableBodyNone">object   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Inline <code>/etc</code> file content (<code>passwd</code>, <code>group</code>, <code>hosts</code>, <code>services</code>, <code>ld.so.preload</code>).    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>network</code>   </td><td class="markdownTableBodyNone">string   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Network mode: <code>"nat"</code>, <code>"open"</code>, or <code>"private"</code>. Defaults to <code>"private"</code>.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>mounts</code>   </td><td class="markdownTableBodyNone">array   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Additional bind-mounts into the container.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>cpu</code>   </td><td class="markdownTableBodyNone">object   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">CPU cgroup settings: <code>shares</code> (percentage 1–100) and <code>cores</code> (bitmask string).    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>rtPriority</code>   </td><td class="markdownTableBodyNone">object   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Real-time scheduling priority settings.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>userNs</code>   </td><td class="markdownTableBodyNone">boolean   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Enable user namespacing. Defaults to <code>true</code>.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>gpu</code>   </td><td class="markdownTableBodyNone">object   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">GPU device node access settings.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>vpu</code>   </td><td class="markdownTableBodyNone">object   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">VPU device node access settings.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>devices</code>   </td><td class="markdownTableBodyNone">array   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Additional device nodes to whitelist.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>capabilities</code>   </td><td class="markdownTableBodyNone">array   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Linux capabilities to grant the container.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>seccomp</code>   </td><td class="markdownTableBodyNone">object   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Seccomp syscall filter profile.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>syslog</code>   </td><td class="markdownTableBodyNone">object   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Syslog plugin configuration.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>dbus</code>   </td><td class="markdownTableBodyNone">object   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">D-Bus access configuration.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>restartOnCrash</code>   </td><td class="markdownTableBodyNone">boolean   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Restart the container automatically if it crashes.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>plugins</code>   </td><td class="markdownTableBodyNone">object   </td><td class="markdownTableBodyNone">No   </td><td class="markdownTableBodyNone">Legacy plugin configuration (prefer <code>rdkPlugins</code>).   </td></tr>
+</table>
+<h3><a class="anchor" id="autotoc_md13"></a>
+Memory configuration example</h3>
+<div class="fragment"><div class="line">{</div>
+<div class="line">    &quot;version&quot;: &quot;1.0&quot;,</div>
+<div class="line">    &quot;args&quot;: [ &quot;/usr/bin/myapp&quot; ],</div>
+<div class="line">    &quot;user&quot;: { &quot;uid&quot;: 1000, &quot;gid&quot;: 1000 },</div>
+<div class="line">    &quot;memLimit&quot;: 67108864,</div>
+<div class="line">    &quot;swapLimit&quot;: 134217728</div>
+<div class="line">}</div>
+</div><!-- fragment --><p>When <code>swapLimit</code> is present, <code>memLimit</code> is scaled down based on the host's active zram-swap-to-RAM ratio before it is applied to <code>memory.limit_in_bytes</code>. Swapfiles and swap partitions are not included in this ratio. <code>swapLimit</code> sets the combined memory+swap ceiling enforced by the kernel cgroup (<code>memory.memsw.limit_in_bytes</code>). When omitted, <code>memLimit</code> is applied directly and memory+swap is unlimited (-1), allowing the container to use as much swap as the system provides.</p>
+<h2><a class="anchor" id="autotoc_md14"></a>
 DobbyTool</h2>
 <p>This is a simple command line tool that is used for debugging purporses. It connects to the <a class="el" href="classDobby.html" title="The root Dobby object, runs the dbus loop.">Dobby</a> daemon over dbus and allows for debugging and testing containers.</p>
 <div class="fragment"><div class="line">vagrant@dobby-vagrant:~$ DobbyTool help</div>
@@ -225,7 +305,7 @@ DobbyTool</h2>
 <div class="line">start             start [options...] &lt;id&gt; &lt;specfile/bundlepath&gt; [command]</div>
 <div class="line"> </div>
 <div class="line">Starts a container using the given spec file or bundle path. Can optionally specify the command to run inside the container. Any arguments after command are treated as arguments to the command.</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md12"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md15"></a>
 DobbyPluginLauncher</h2>
 <p>This is designed to be run from the OCI runtime to execute <a class="el" href="classDobby.html" title="The root Dobby object, runs the dbus loop.">Dobby</a> RDK plugins. It loads plugins from the <code>/usr/lib/plugins/dobby</code> directory (configurable at build-time), and runs the appropriate methods based on the specified hook and plugin data.</p>
 <div class="fragment"><div class="line">Usage: DobbyPluginLauncher &lt;option(s)&gt;</div>
@@ -248,19 +328,19 @@ DobbyPluginLauncher</h2>
 <div class="line">      }</div>
 <div class="line">   }</div>
 <div class="line">}</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md13"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md16"></a>
 DobbyInit</h2>
 <p>This tool is a simple 'init' process for containers. Instead of relying on runc to manage the lifecycle of processes within the container, DobbyInit is responsible for reaping adopted child processes and forwarding signals to child processes. The motivation for this tool is described here: <a href="https://blog.phusion.nl/2015/01/20/docker-and-the-pid-1-zombie-reaping-problem">https://blog.phusion.nl/2015/01/20/docker-and-the-pid-1-zombie-reaping-problem</a>. It is installed in <code>/usr/libexec</code>.</p>
 <div class="fragment"><div class="line">Usage: DobbyInit &lt;process-to-run&gt; &lt;arg1&gt; &lt;arg2&gt; ... &lt;argN&gt;</div>
 </div><!-- fragment --><hr  />
- <h1><a class="anchor" id="autotoc_md15"></a>
+ <h1><a class="anchor" id="autotoc_md18"></a>
 Copyright and license</h1>
 <p>If not stated otherwise in this file or this component's LICENSE file the following copyright and licenses apply:</p>
 <p>Copyright 2020 Sky UK</p>
 <p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at</p>
 <p><a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></p>
 <p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.</p>
-<h2><a class="anchor" id="autotoc_md16"></a>
+<h2><a class="anchor" id="autotoc_md19"></a>
 Note</h2>
 <p><a class="el" href="classDobby.html" title="The root Dobby object, runs the dbus loop.">Dobby</a> makes use of the <a href="https://github.com/containers/libocispec">libocispec</a> library to parse and generate OCI configurations from JSON schemas. This is a code-generator and used only at build-time. <code>libocispec</code> is GPLv3 licensed but includes a specific exception for this purpose. </p>
 </div></div><!-- PageDoc -->
